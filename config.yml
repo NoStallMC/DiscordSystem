@@ -1,0 +1,75 @@
+# Discord Bot Configuration File
+
+# Your Discord Bot Token (keep it secret :D ) and Your Discord Bot ID (Needed to prevent spam in server-shell)
+token: "YourBotToken"
+bot-id: "YourBotID"
+server-name: "MyServer"  # Set this to your server name!
+
+# Discord Webhook URL for sending messages
+webhook:
+  enabled: true  # If false normal messages will be sent instead
+  url: "YourWebhookURL"
+
+messages:
+  channel-id: "YourMessageChannelID"  # Discord channel ID where most messages will be sent
+
+  use-displayname: true  # Whether to use the player's display name instead of playername
+
+  # Format for chat messages sent from Discord to Server chat
+  chat-game-message: "&f[&bDiscord&f] &7%user%: %content%"  # %user% = Discord username, %content% = message content
+
+  # Format for chat messages sent from Server to Discord
+  game-chat-message: "**%messageAuthor%**: %message%"  # %messageAuthor% = game player name, %message% = chat message
+
+  # Message format when a player joins the server
+  join-message: "**%username%** Has Joined. [%onlineCount%/%maxCount%]"  # %username%, %onlineCount%, %maxCount% are placeholders
+
+  # Message format when a player leaves the server
+  quit-message: "**%username%** Has Left. [%onlineCount%/%maxCount%]"  
+
+  server-start-message:  # Rich embed message sent on server start
+    author: Server  # Embed author name
+    title: Information  # Embed title
+    description: |  # Embed multi-line description text
+      Line 1
+      Line 2
+      Line 3
+    color: GREEN  # Embed color indicator
+
+  server-shutdown-message:  # Rich embed message sent on server shutdown
+    author: Server
+    title: Information
+    description: |
+      Line 1
+    color: RED
+
+# Enable or disable the server shell feature
+server-shell:
+  enabled: false
+
+  # Allows Discord BOTS to interact with server shell.
+  allow-bots: false
+
+  # Channel ID for server shell commands
+  channel-id: "YourShellChannelID"
+  
+  # List of users allowed to use the shell commands
+  allowed-users:
+    - discordID1
+    - discordID2
+
+# Channel ID for sign placements
+sign:
+  enabled: true
+  channel-id: "YourSignChannelID"
+
+# Channel ID for status updates
+status:
+  enabled: true
+  channel-id: "YourStatusChannelID"
+
+################################################################################
+debug: false  # Dont enable unless needed
+################################################################################
+
+# End of config - Made by ~jkoo :D

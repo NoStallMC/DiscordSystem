@@ -1,0 +1,4 @@
+# Blacklisted commands
+blacklisted-commands:
+  - "-command1"
+  - "-command2"

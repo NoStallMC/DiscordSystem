@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="DiscordSystem" default="makejar" basedir=".">
+    <!-- Define properties -->
+    <property name="src.dir" value="src"/>
+    <property name="bin.dir" value="bin"/>
+    <property name="lib.dir" value="C:\Users\Matej\eclipse-workspace\lib"/>
+    <property name="output.dir" value="C:/Users/Matej/Desktop/beta/plugins"/>
+    <property name="output.jar" value="${output.dir}/${ant.project.name}.jar"/>
+
+    <!-- Clean target to remove bin directory -->
+    <target name="clean">
+        <delete dir="${bin.dir}" />
+    </target>
+
+    <!-- Compile target to compile Java files -->
+    <target name="compile">
+        <mkdir dir="${bin.dir}"/>
+        <javac srcdir="${src.dir}" destdir="${bin.dir}" includeantruntime="false">
+            <classpath>
+                <!-- Include dependencies from the lib directory -->
+                <fileset dir="${lib.dir}">
+                    <include name="*.jar"/>
+                </fileset>
+            </classpath>
+        </javac>
+    </target>
+
+    <!-- Create JAR file with dependencies and resources -->
+    <target name="makejar" depends="compile" description="Create a jar for the project">
+        <mkdir dir="${output.dir}"/>
+        <jar destfile="${output.jar}">
+            <fileset dir="${bin.dir}"/>
+            <fileset file="plugin.yml"/>
+            <fileset file="config.yml"/>
+            <fileset file="blacklist.yml"/>
+            <fileset file="activity_config.yml"/>
+        	
+            <!-- Include external dependencies into the JAR -->
+            <zipgroupfileset dir="${lib.dir}">
+                <include name="discord-webhooks-0.1.6.jar"/>
+                <include name="JDA-5.0.1.jar"/>
+                <include name="json.jar"/>
+            </zipgroupfileset>
+        </jar>
+    </target>
+</project>

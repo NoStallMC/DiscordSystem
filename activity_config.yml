@@ -1,0 +1,21 @@
+Thresholds:
+  building: 5            # Amount of placed blocks to trigger "building" activity.
+  gathering: 10          # Amount of broken blocks (like grass, dirt) to trigger "gathering" activity.
+  mining: 5              # Amount of broken Ores/stone blocks to trigger "mining" activity.
+  farming: 3             # Farming-related actions to trigger "farming" activity.
+  fishing: 2             # Successful fish catches to trigger "fishing" activity.
+  hunting: 5             # Amount of animal items picked up needed to trigger "hunting" activity.
+  nether_distance: 30    # Distance traveled in Nether to trigger "nether_travel" activity.
+
+Activity-Clear: 60       # Time (in seconds) it takes for GAINING activity to fully decay to 0%
+Decay-Time: 360          # Time (in seconds) it takes for SET activity to fully decay to 0%
+Decay-Speed: 20          # How often in ticks should decay take place.
+
+# ------------------------------------------------------------------------------------------
+# Explanation:
+# Thresholds define how many actions are required to trigger each activity.
+# Once an activity is detected, it starts at 100% strength.
+# The activity then decays over time. "Decay-Time" determines how long (in seconds)
+# it takes for an activity to fade completely (strength 0%) if no new actions occur.
+# For example, with Decay-Time = 5 and Decay-Speed = 20, the strength drops by 20% every second.
+# ------------------------------------------------------------------------------------------
