@@ -4,6 +4,7 @@ import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import main.java.org.matejko.discordsystem.DiscordPlugin;
 import main.java.org.matejko.discordsystem.GetterHandler;
 import main.java.org.matejko.discordsystem.ServerShellSender;
+import main.java.org.matejko.discordsystem.configuration.CensorshipRulesManager;
 import main.java.org.matejko.discordsystem.configuration.Config;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -11,6 +12,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public final class MessageReceiveListener extends ListenerAdapter {
     private final Config config;
@@ -30,6 +32,7 @@ public final class MessageReceiveListener extends ListenerAdapter {
         String channelId = event.getChannel().getId();
         String rawContent = event.getMessage().getContentRaw();
         String sanitizedContent = sanitize(rawContent);
+        String censoredContent = applyCensorship(sanitizedContent);
 
         if (channelId.equals(config.shellChannelId())) {
             if (!config.serverShellEnabled()) {
@@ -81,10 +84,10 @@ public final class MessageReceiveListener extends ListenerAdapter {
 
             // Format for Minecraft server
             String mcMessage = config.messageFormat()
-            	    .replace("%user%", authorName)
-            	    .replace("%content%", sanitizedContent);
+                    .replace("%user%", authorName)
+                    .replace("%content%", censoredContent);
             String coloredMessage = translateColorCodes(mcMessage);
-            
+
             for (Player player : Bukkit.getOnlinePlayers()) {
                 player.sendMessage(coloredMessage);
             }
@@ -96,11 +99,12 @@ public final class MessageReceiveListener extends ListenerAdapter {
                 WebhookMessageBuilder builder = new WebhookMessageBuilder()
                         .setAvatarUrl(event.getAuthor().getEffectiveAvatarUrl())
                         .setUsername(authorName)
-                        .setContent(sanitizedContent);
+                        .setContent(censoredContent);
                 GetterHandler.webhookClient().send(builder.build());
             }
         }
     }
+
     public static String translateColorCodes(String input) {
         if (input == null) return null;
 
@@ -108,7 +112,6 @@ public final class MessageReceiveListener extends ListenerAdapter {
         for (int i = 0; i < chars.length - 1; i++) {
             if (chars[i] == '&') {
                 char c = chars[i + 1];
-                // Check if the next char is a valid color or formatting code
                 if (isColorCodeChar(c)) {
                     chars[i] = '§';
                     chars[i + 1] = Character.toLowerCase(c);
@@ -126,8 +129,36 @@ public final class MessageReceiveListener extends ListenerAdapter {
     private String sanitize(String input) {
         if (input == null) return "";
         return input.replaceAll("§[0-9a-fk-or]", "")
-                    .replace("@everyone", "everyone")
-                    .replace("@here", "here")
-                    .replace("@", "(at)");
+                .replace("@everyone", "everyone")
+                .replace("@here", "here")
+                .replace("@", "(at)");
+    }
+
+    private String applyCensorship(String input) {
+        if (!config.messagesCensorEnabled() || input == null) return input;
+
+        DiscordPlugin plugin = (DiscordPlugin) Bukkit.getPluginManager().getPlugin("DiscordSystem");
+        if (plugin == null) return input;
+
+        CensorshipRulesManager rules = plugin.getCensorshipRules();
+        Set<String> blacklist = rules.getBlacklist();
+        Set<String> whitelist = rules.getWhitelist();
+
+        String[] words = input.split("\\s+");
+        for (int i = 0; i < words.length; i++) {
+            String rawWord = words[i].replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+            if (blacklist.contains(rawWord) && !whitelist.contains(rawWord)) {
+                words[i] = repeatHashtag(rawWord.length());
+            }
+        }
+        return String.join(" ", words);
+    }
+
+    private String repeatHashtag(int count) {
+        StringBuilder builder = new StringBuilder(count);
+        for (int i = 0; i < count; i++) {
+            builder.append("#");
+        }
+        return builder.toString();
     }
 }

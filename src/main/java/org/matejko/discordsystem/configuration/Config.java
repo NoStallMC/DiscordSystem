@@ -111,7 +111,11 @@ public class Config {
     public String messageChannelId() {
         return config.getString("messages.channel-id", "YourMessageChannelID");
     }
-
+    
+    public boolean messagesCensorEnabled() {
+        return config.getBoolean("messages.censor", false);
+    }
+    
     public String joinMessage() {
         return config.getString("messages.join-message", "%username% connected. (%onlineCount%/%maxCount%)");
     }

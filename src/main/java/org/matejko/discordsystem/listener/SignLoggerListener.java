@@ -22,7 +22,6 @@ import java.util.*;
 public final class SignLoggerListener extends ListenerAdapter implements Listener {
     private static final Map<String, Location> signMap = new HashMap<>();
     private static File SIGN_FILE;
-
     private final Config config;
     private final CensorshipRulesManager censorship;
 
