@@ -8,7 +8,7 @@ import java.util.logging.LogRecord;
 
 public final class DeathLoggerHandler {
     @SuppressWarnings("unused")
-	private static Config config;
+    private static Config config;
 
     public static void register(Config config) {
         DeathLoggerHandler.config = config;
@@ -25,12 +25,15 @@ public final class DeathLoggerHandler {
                 if (!msg.contains("[HeroicDeath]")) return;
                 if (msg.toLowerCase().contains("enabled")) return;
                 if (msg.toLowerCase().contains("disabled")) return;
+
                 String cleaned = msg.replace("[HeroicDeath] ", "").trim();
                 String[] parts = cleaned.split(" ", 2);
                 if (parts.length < 2) return;
-                String username = parts[0];
-                String content = parts[1];
+
+                String username = sanitizeArgs(parts[0]);
+                String content = sanitizeArgs(parts[1]);
                 String boldUsername = "**" + username + "**";
+
                 try {
                     if (config.webhookEnabled()) {
                         if (config.debugEnabled()) {
@@ -59,9 +62,17 @@ public final class DeathLoggerHandler {
 
             @Override
             public void flush() {}
+
             @Override
             public void close() throws SecurityException {}
         };
+
         Bukkit.getLogger().addHandler(handler);
+    }
+
+    // Sanitize display name: strip color/formatting codes
+    private static String sanitizeArgs(String displayName) {
+        if (displayName == null) return "";
+        return displayName.replaceAll("§[0-9a-fA-Fk-orK-OR]", "").trim();
     }
 }

@@ -12,6 +12,7 @@ import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.util.config.Configuration;
 import main.java.org.matejko.discordsystem.DiscordPlugin;
 import main.java.org.matejko.discordsystem.GetterHandler;
+import main.java.org.matejko.discordsystem.configuration.CensorshipRulesManager;
 import main.java.org.matejko.discordsystem.configuration.Config;
 import java.io.File;
 import java.security.MessageDigest;
@@ -21,13 +22,13 @@ import java.util.*;
 public final class SignLoggerListener extends ListenerAdapter implements Listener {
     private static final Map<String, Location> signMap = new HashMap<>();
     private static File SIGN_FILE;
-    private static boolean rulesLoaded = false;
-    private static Set<String> whitelist;
-    private static Set<String> blacklist;
+
     private final Config config;
+    private final CensorshipRulesManager censorship;
 
     public SignLoggerListener(DiscordPlugin plugin, Config config) {
         this.config = config;
+        this.censorship = plugin.getCensorshipRules();
         SIGN_FILE = new File(plugin.getDataFolder(), "signs.yml");
         initializeFile();
     }
@@ -68,20 +69,6 @@ public final class SignLoggerListener extends ListenerAdapter implements Listene
                 signMap.put(signID, loc);
             }
         }
-    }
-
-    public static void loadCensorshipRules() {
-        File chatGuardConfigFile = new File("plugins/ChatGuard/config/config.yml");
-        if (!chatGuardConfigFile.exists()) {
-            System.out.println("Config file does not exist.");
-            return;
-        }
-        Configuration config = new Configuration(chatGuardConfigFile);
-        config.load();
-        List<String> whitelistList = config.getStringList("filter.rules.terms.whitelist", new ArrayList<>());
-        whitelist = new HashSet<>(whitelistList);
-        List<String> blacklistList = config.getStringList("filter.rules.terms.blacklist", new ArrayList<>());
-        blacklist = new HashSet<>(blacklistList);
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -150,27 +137,6 @@ public final class SignLoggerListener extends ListenerAdapter implements Listene
             config.setProperty(path + ".messageId", message.getId());
             config.save();
         });
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////
-    // Censorship Methods
-    ////////////////////////////////////////////////////////////////////////////////
-
-    private String censorContent(String content) {
-        if (!rulesLoaded) {
-            loadCensorshipRules();
-            rulesLoaded = true;
-        }
-        String[] words = content.split("\\s+");
-        for (int i = 0; i < words.length; i++) {
-            String word = words[i].toLowerCase();
-            if (blacklist.contains(word) && !whitelist.contains(word)) {
-                char[] censoredWord = new char[word.length()];
-                Arrays.fill(censoredWord, '#');
-                words[i] = new String(censoredWord);
-            }
-        }
-        return String.join(" ", words);
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -251,6 +217,13 @@ public final class SignLoggerListener extends ListenerAdapter implements Listene
             text.append("line").append(i + 1).append(": ").append(censoredLine).append("\n");
         }
         return text.toString().trim();
+    }
+
+    private String censorContent(String content) {
+        if (!config.signCensorEnabled()) {
+            return content;
+        }
+        return censorship.censorText(content);
     }
 
     private String generateSignID(Location loc, long timestamp) {

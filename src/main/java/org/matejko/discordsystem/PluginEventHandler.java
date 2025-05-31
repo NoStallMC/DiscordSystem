@@ -1,6 +1,7 @@
 package main.java.org.matejko.discordsystem;
 
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
+import main.java.org.matejko.discordsystem.configuration.CensorshipRulesManager;
 import main.java.org.matejko.discordsystem.configuration.Config;
 import net.dv8tion.jda.api.entities.Activity;
 import org.bukkit.Bukkit;
@@ -12,7 +13,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 public class PluginEventHandler implements Listener {
     private final Config config;
-	private DiscordPlugin plugin;
+    private DiscordPlugin plugin;
 
     public PluginEventHandler(Config config, DiscordPlugin plugin) {
         this.config = config;
@@ -62,21 +63,28 @@ public class PluginEventHandler implements Listener {
             public void run() {
                 int online = Bukkit.getOnlinePlayers().length;
                 int maxPlayers = Bukkit.getMaxPlayers();
-                String rawName = event.getPlayer().getDisplayName();
-                String name = config.useDisplayName() ? sanitizeDisplayName(rawName) : event.getPlayer().getName();
+                String playerName = event.getPlayer().getName();
+                String displayName = sanitizeDisplayName(event.getPlayer().getDisplayName());
+
+                // Replace standard placeholders
                 String message = config.joinMessage()
-                    .replace("%username%", name)
+                    .replace("%PlayerName%", playerName)
+                    .replace("%DisplayName%", displayName)
                     .replace("%onlineCount%", String.valueOf(online))
                     .replace("%maxCount%", String.valueOf(maxPlayers));
+
+                // Send via webhook or bot
                 if (webhookEnabled()) {
                     WebhookMessageBuilder builder = new WebhookMessageBuilder()
-                        .setAvatarUrl("http://minotar.net/helm/" + event.getPlayer().getName() + "/100.png")
-                        .setUsername(name)
+                        .setAvatarUrl("http://minotar.net/helm/" + playerName + "/100.png")
+                        .setUsername(displayName)
                         .setContent(message);
                     GetterHandler.webhookClient().send(builder.build());
                 } else {
                     sendBotMessage(message);
                 }
+
+                // Update presence with new player count
                 GetterHandler.jda().getPresence().setActivity(
                     Activity.playing(config.serverName() + " with " + online + " players")
                 );
@@ -84,25 +92,30 @@ public class PluginEventHandler implements Listener {
         }, 1L);  // 1 tick delay
     }
 
-
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         int online = Bukkit.getOnlinePlayers().length - 1;
         int maxPlayers = Bukkit.getMaxPlayers();
-        String rawName = event.getPlayer().getDisplayName();
-        String name = config.useDisplayName() ? sanitizeDisplayName(rawName) : event.getPlayer().getName();
+        String playerName = event.getPlayer().getName();
+        String displayName = sanitizeDisplayName(event.getPlayer().getDisplayName());
+
+        // Replace standard placeholders
         String message = config.quitMessage()
-            .replace("%username%", name)
+            .replace("%PlayerName%", playerName)
+            .replace("%DisplayName%", displayName)
             .replace("%onlineCount%", String.valueOf(online))
             .replace("%maxCount%", String.valueOf(maxPlayers));
 
+        // Update presence with new player count
         GetterHandler.jda().getPresence().setActivity(
             Activity.playing(config.serverName() + " with " + online + " players")
         );
+
+        // Send via webhook or bot
         if (webhookEnabled()) {
             WebhookMessageBuilder builder = new WebhookMessageBuilder()
-                .setAvatarUrl("http://minotar.net/helm/" + event.getPlayer().getName() + "/100.png")
-                .setUsername(name)
+                .setAvatarUrl("http://minotar.net/helm/" + playerName + "/100.png")
+                .setUsername(displayName)
                 .setContent(message);
             GetterHandler.webhookClient().send(builder.build());
         } else {
@@ -113,20 +126,41 @@ public class PluginEventHandler implements Listener {
     @EventHandler
     public void onPlayerChat(PlayerChatEvent event) {
         if (event.isCancelled()) return;
+        String playerName = event.getPlayer().getName();
+        String displayName = sanitizeDisplayName(event.getPlayer().getDisplayName());
+        String originalMessage = event.getMessage();
+        String sanitizedMessage = sanitizeMessage(originalMessage);
 
-        String rawName = event.getPlayer().getDisplayName();
-        String name = config.useDisplayName() ? sanitizeDisplayName(rawName) : event.getPlayer().getName();
+        CensorshipRulesManager rules = DiscordPlugin.instance().getCensorshipRules();
+
+        String[] words = sanitizedMessage.toLowerCase().split("\\s+");
+        for (int i = 0; i < words.length; i++) {
+            String word = words[i];
+            if (rules.getBlacklist().contains(word) && !rules.getWhitelist().contains(word)) {
+            	words[i] = repeatHashtag(word.length());
+            }
+        }
+        String censoredMessage = String.join(" ", words);
+        // Replace placeholders
         String content = config.chatMessage()
-            .replace("%messageAuthor%", name)
-            .replace("%message%", sanitizeMessage(event.getMessage()));
+            .replace("%PlayerName%", playerName)
+            .replace("%DisplayName%", displayName)
+            .replace("%message%", censoredMessage);
         if (webhookEnabled()) {
             WebhookMessageBuilder builder = new WebhookMessageBuilder()
-                .setAvatarUrl("http://minotar.net/helm/" + event.getPlayer().getName() + "/100.png")
-                .setUsername(name)
-                .setContent(sanitizeMessage(event.getMessage()));
+                .setAvatarUrl("http://minotar.net/helm/" + playerName + "/100.png")
+                .setUsername(displayName)
+                .setContent(censoredMessage); // Webhook gets only the message
             GetterHandler.webhookClient().send(builder.build());
         } else {
             sendBotMessage(content);
         }
+    }
+    private String repeatHashtag(int count) {
+        StringBuilder builder = new StringBuilder(count);
+        for (int i = 0; i < count; i++) {
+            builder.append("#");
+        }
+        return builder.toString();
     }
 }

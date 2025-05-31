@@ -3,8 +3,8 @@
     <!-- Define properties -->
     <property name="src.dir" value="src"/>
     <property name="bin.dir" value="bin"/>
-    <property name="lib.dir" value="C:\Users\Matej\eclipse-workspace\lib"/>
-    <property name="output.dir" value="C:/Users/Matej/Desktop/beta/plugins"/>
+    <property name="lib.dir" value="/home/jkoo/eclipse-workspace/lib"/>
+    <property name="output.dir" value="/home/jkoo/beta/plugins"/>
     <property name="output.jar" value="${output.dir}/${ant.project.name}.jar"/>
 
     <!-- Clean target to remove bin directory -->
@@ -34,12 +34,12 @@
             <fileset file="config.yml"/>
             <fileset file="blacklist.yml"/>
             <fileset file="activity_config.yml"/>
-        	
+
             <!-- Include external dependencies into the JAR -->
             <zipgroupfileset dir="${lib.dir}">
                 <include name="discord-webhooks-0.1.6.jar"/>
                 <include name="JDA-5.0.1.jar"/>
-                <include name="json.jar"/>
+            	<include name="json.jar"/>
             </zipgroupfileset>
         </jar>
     </target>

@@ -9,23 +9,31 @@ server-name: "MyServer"  # Set this to your server name!
 webhook:
   enabled: true  # If false normal messages will be sent instead
   url: "YourWebhookURL"
+  
+censorship: # Dont forget to change default values!
+  enabled: false
+  own: true  # If false it relies on censorship rules from ChatGuard plugin dir.
 
 messages:
   channel-id: "YourMessageChannelID"  # Discord channel ID where most messages will be sent
-
-  use-displayname: true  # Whether to use the player's display name instead of playername
-
+  
+  censor: false  # Allows censorship of messages sent in channel, censorship has to be true
+  
+  sleepmessages: true  # Allows sending of custom sleepmessages from Utilis/NightSkip (NoStallMC one).
+  
   # Format for chat messages sent from Discord to Server chat
   chat-game-message: "&f[&bDiscord&f] &7%user%: %content%"  # %user% = Discord username, %content% = message content
 
+  # %PlayerName% = Player name, %DisplayName% = Player display name (use this one for nicknames), %message% = chat message
+  
   # Format for chat messages sent from Server to Discord
-  game-chat-message: "**%messageAuthor%**: %message%"  # %messageAuthor% = game player name, %message% = chat message
+  game-chat-message: "**%DisplayName%**: %message%"
 
   # Message format when a player joins the server
-  join-message: "**%username%** Has Joined. [%onlineCount%/%maxCount%]"  # %username%, %onlineCount%, %maxCount% are placeholders
+  join-message: "**%DisplayName%** Has Joined. [%onlineCount%/%maxCount%]"  # %onlineCount%, %maxCount% are placeholders too
 
   # Message format when a player leaves the server
-  quit-message: "**%username%** Has Left. [%onlineCount%/%maxCount%]"  
+  quit-message: "**%DisplayName%** Has Left. [%onlineCount%/%maxCount%]"  
 
   server-start-message:  # Rich embed message sent on server start
     author: Server  # Embed author name
@@ -61,6 +69,7 @@ server-shell:
 # Channel ID for sign placements
 sign:
   enabled: true
+  censor: false  # Allows censorship of messages sent in channel, censorship has to be true
   channel-id: "YourSignChannelID"
 
 # Channel ID for status updates

@@ -2,6 +2,7 @@ package main.java.org.matejko.discordsystem;
 
 import java.util.logging.Logger;
 import org.bukkit.plugin.java.JavaPlugin;
+import main.java.org.matejko.discordsystem.configuration.CensorshipRulesManager;
 import main.java.org.matejko.discordsystem.configuration.Config;
 import main.java.org.matejko.discordsystem.listener.PlayerListUpdater;
 import main.java.org.matejko.discordsystem.listener.PlaytimeManager;
@@ -10,8 +11,9 @@ import main.java.org.matejko.discordsystem.utils.ActivityManager;
 public final class DiscordPlugin extends JavaPlugin {
     private static DiscordPlugin instance;
     private static PlayerListUpdater updater;
-    private Logger logger;
     private PlaytimeManager playtimeManager;
+	private static CensorshipRulesManager censorshipRules;
+    private Logger logger;
     private Config config;
 
     @Override
@@ -19,8 +21,9 @@ public final class DiscordPlugin extends JavaPlugin {
         this.logger = Logger.getLogger("DiscordSystem");
         instance = this;
 
-        // Initialize config first!
+        // Initialize configs first!
         config = new Config(this);
+        censorshipRules = new CensorshipRulesManager(getDataFolder(), config);
         
         // Initialize Discord-related handlers (JDA, webhook, config)
         GetterHandler.initialize(this, this);
@@ -57,6 +60,10 @@ public final class DiscordPlugin extends JavaPlugin {
         return logger;
     }
     
+    public CensorshipRulesManager getCensorshipRules() {
+        return censorshipRules;
+    }
+
     public PlaytimeManager getPlaytimeManager() {
         return playtimeManager;
     }

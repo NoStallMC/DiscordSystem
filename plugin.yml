@@ -3,12 +3,25 @@ author: ~jkoo
 version: 1.0
 main: main.java.org.matejko.discordsystem.DiscordPlugin
 commands:
+
   signremove:
     description: Removes sign from server.
     usage: /signremove signID
     aliases: [sr]
     permission-message: You do not have permission to use this command.
+    
+  censorship:
+    description: Manage censorship rules
+    usage: /<command>
+    aliases: [cship]
+    permission: censorship.manage
+    
 permissions:
+
   signremove:
     description: Allows access to the /signremove command.
+    default: op
+    
+  censorship.manage:
+    description: Allows managing the blacklist/whitelist censorship
     default: op

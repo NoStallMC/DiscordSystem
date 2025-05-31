@@ -25,7 +25,7 @@ public class BlacklistManager {
         if (!discordBotDir.exists()) {
             discordBotDir.mkdirs();
         }
-        blacklistFile = new File(discordBotDir, "blacklist.yml");
+        blacklistFile = new File(discordBotDir, "shell_blacklist.yml");
 
         /////////////////////////////////////////////////////////////////////////////
         // Create or Load Blacklist File

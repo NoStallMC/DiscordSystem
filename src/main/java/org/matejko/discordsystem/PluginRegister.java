@@ -25,6 +25,7 @@ public final class PluginRegister {
         // Register plugin command executors
         ////////////////////////////////////////////////////////////////////////////////
         plugin.getCommand("signremove").setExecutor(new SignCommand());
+        plugin.getCommand("censorship").setExecutor(new CensorshipCommand());
         PluginManager pm = plugin.getServer().getPluginManager();
         
         ////////////////////////////////////////////////////////////////////////////////

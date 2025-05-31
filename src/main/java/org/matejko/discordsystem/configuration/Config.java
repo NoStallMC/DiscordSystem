@@ -95,17 +95,21 @@ public class Config {
     public boolean webhookEnabled() {
         return config.getBoolean("webhook.enabled", true);
     }
-
+    
+    public boolean censorshipEnabled() {
+        return config.getBoolean("censorship.enabled", false);
+    }
+    
+    public boolean ownRules() {
+        return config.getBoolean("censorship.own", true);
+    }
+    
     public String webhookUrl() {
         return config.getString("webhook.url", "YourWebhookURL");
     }
 
     public String messageChannelId() {
         return config.getString("messages.channel-id", "YourMessageChannelID");
-    }
-    
-    public boolean useDisplayName() {
-        return config.getBoolean("messages.use-displayname", true);
     }
 
     public String joinMessage() {
@@ -159,12 +163,8 @@ public class Config {
         return config.getString("sign.channel-id", "YourSignChannelID");
     }
     
-    public boolean logEnabled() {
-        return config.getBoolean("log.enabled", false);
-    }
-
-    public String logChannelId() {
-        return config.getString("log.channel-id", "YourLogChannelID");
+    public boolean signCensorEnabled() {
+        return config.getBoolean("sign.censor", false);
     }
     
     public boolean statusEnabled() {
