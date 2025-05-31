@@ -219,7 +219,7 @@ public final class SignLoggerListener extends ListenerAdapter implements Listene
     }
 
     private String censorContent(String content) {
-        if (!config.signCensorEnabled()) {
+        if (!config.signCensorEnabled() || config.messagesCensorEnabled()) {
             return content;
         }
         return censorship.censorText(content);

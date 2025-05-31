@@ -135,7 +135,7 @@ public final class MessageReceiveListener extends ListenerAdapter {
     }
 
     private String applyCensorship(String input) {
-        if (!config.messagesCensorEnabled() || input == null) return input;
+        if (!config.messagesCensorEnabled() || !config.censorshipEnabled() || input == null) return input;
 
         DiscordPlugin plugin = (DiscordPlugin) Bukkit.getPluginManager().getPlugin("DiscordSystem");
         if (plugin == null) return input;
