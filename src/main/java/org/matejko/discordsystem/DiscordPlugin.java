@@ -14,7 +14,7 @@ public final class DiscordPlugin extends JavaPlugin {
     private PlaytimeManager playtimeManager;
 	private static CensorshipRulesManager censorshipRules;
     private Logger logger;
-    private Config config;
+    Config config;
 
     @Override
     public void onEnable() {
@@ -51,7 +51,11 @@ public final class DiscordPlugin extends JavaPlugin {
     public void onDisable() {
         GetterHandler.shutdown();
     }
-
+    
+    public Config getConfig() {
+    	return config;
+    }
+    
     public static DiscordPlugin instance() {
         return instance;
     }

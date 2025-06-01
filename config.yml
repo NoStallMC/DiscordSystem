@@ -19,7 +19,7 @@ messages:
   
   censor: false  # Allows censorship of messages sent in channel, censorship has to be true
   
-  sleepmessages: true  # Allows sending of custom sleepmessages from Utilis/NightSkip (NoStallMC one).
+  sleepmessages: false  # Allows sending of custom sleepmessages from Utilis/NightSkip (NoStallMC one).
   
   # Format for chat messages sent from Discord to Server chat
   chat-game-message: "&f[&bDiscord&f] &7%user%: %content%"  # %user% = Discord username, %content% = message content

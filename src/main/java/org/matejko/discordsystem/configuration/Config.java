@@ -116,6 +116,10 @@ public class Config {
         return config.getBoolean("messages.censor", false);
     }
     
+    public boolean smEnabled() {
+        return config.getBoolean("messages.sleepmessages", false);
+    }
+    
     public String joinMessage() {
         return config.getString("messages.join-message", "%username% connected. (%onlineCount%/%maxCount%)");
     }

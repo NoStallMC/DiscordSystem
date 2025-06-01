@@ -3,13 +3,19 @@ package main.java.org.matejko.discordsystem;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import main.java.org.matejko.discordsystem.configuration.CensorshipRulesManager;
 import main.java.org.matejko.discordsystem.configuration.Config;
+import main.java.org.matejko.utilis.Utilis;
+import main.java.org.matejko.utilis.Managers.SleepingManager;
+import main.java.org.matejko.utilis.UtilisCore.UtilisGetters;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.plugin.Plugin;
 
 public class PluginEventHandler implements Listener {
     private final Config config;
@@ -35,8 +41,9 @@ public class PluginEventHandler implements Listener {
     private void sendBotMessage(String message) {
         String channelId = config.messageChannelId();
         if (channelId == null || channelId.isEmpty()) return;
-        if (GetterHandler.jda().getTextChannelById(channelId) == null) return;
-        GetterHandler.jda().getTextChannelById(channelId).sendMessage(message).queue();
+        TextChannel channel = GetterHandler.jda().getTextChannelById(channelId);
+        if (channel == null) return;
+        channel.sendMessage(message).queue();
     }
 
     // Sanitize display name: strip color/formatting codes
@@ -57,7 +64,6 @@ public class PluginEventHandler implements Listener {
 
     @EventHandler
     public void onPlayerJoin(final PlayerJoinEvent event) {
-        // Schedule a delayed sync task for 1 tick later
         Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
             @Override
             public void run() {
@@ -66,14 +72,12 @@ public class PluginEventHandler implements Listener {
                 String playerName = event.getPlayer().getName();
                 String displayName = sanitizeDisplayName(event.getPlayer().getDisplayName());
 
-                // Replace standard placeholders
                 String message = config.joinMessage()
                     .replace("%PlayerName%", playerName)
                     .replace("%DisplayName%", displayName)
                     .replace("%onlineCount%", String.valueOf(online))
                     .replace("%maxCount%", String.valueOf(maxPlayers));
 
-                // Send via webhook or bot
                 if (webhookEnabled()) {
                     WebhookMessageBuilder builder = new WebhookMessageBuilder()
                         .setAvatarUrl("http://minotar.net/helm/" + playerName + "/100.png")
@@ -84,12 +88,11 @@ public class PluginEventHandler implements Listener {
                     sendBotMessage(message);
                 }
 
-                // Update presence with new player count
                 GetterHandler.jda().getPresence().setActivity(
                     Activity.playing(config.serverName() + " with " + online + " players")
                 );
             }
-        }, 1L);  // 1 tick delay
+        }, 1L);
     }
 
     @EventHandler
@@ -99,19 +102,16 @@ public class PluginEventHandler implements Listener {
         String playerName = event.getPlayer().getName();
         String displayName = sanitizeDisplayName(event.getPlayer().getDisplayName());
 
-        // Replace standard placeholders
         String message = config.quitMessage()
             .replace("%PlayerName%", playerName)
             .replace("%DisplayName%", displayName)
             .replace("%onlineCount%", String.valueOf(online))
             .replace("%maxCount%", String.valueOf(maxPlayers));
 
-        // Update presence with new player count
         GetterHandler.jda().getPresence().setActivity(
             Activity.playing(config.serverName() + " with " + online + " players")
         );
 
-        // Send via webhook or bot
         if (webhookEnabled()) {
             WebhookMessageBuilder builder = new WebhookMessageBuilder()
                 .setAvatarUrl("http://minotar.net/helm/" + playerName + "/100.png")
@@ -130,37 +130,96 @@ public class PluginEventHandler implements Listener {
         String displayName = sanitizeDisplayName(event.getPlayer().getDisplayName());
         String originalMessage = event.getMessage();
         String sanitizedMessage = sanitizeMessage(originalMessage);
-
         CensorshipRulesManager rules = DiscordPlugin.instance().getCensorshipRules();
-
         String[] words = sanitizedMessage.toLowerCase().split("\\s+");
         for (int i = 0; i < words.length; i++) {
             String word = words[i];
             if (rules.getBlacklist().contains(word) && !rules.getWhitelist().contains(word)) {
-            	words[i] = repeatHashtag(word.length());
+                words[i] = repeatHashtag(word.length());
             }
         }
         String censoredMessage = String.join(" ", words);
-        // Replace placeholders
         String content = config.chatMessage()
             .replace("%PlayerName%", playerName)
             .replace("%DisplayName%", displayName)
             .replace("%message%", censoredMessage);
+
         if (webhookEnabled()) {
             WebhookMessageBuilder builder = new WebhookMessageBuilder()
                 .setAvatarUrl("http://minotar.net/helm/" + playerName + "/100.png")
                 .setUsername(displayName)
-                .setContent(censoredMessage); // Webhook gets only the message
+                .setContent(censoredMessage);
             GetterHandler.webhookClient().send(builder.build());
         } else {
             sendBotMessage(content);
         }
     }
+
     private String repeatHashtag(int count) {
         StringBuilder builder = new StringBuilder(count);
         for (int i = 0; i < count; i++) {
             builder.append("#");
         }
         return builder.toString();
+    }
+
+    // Your new method:
+    public void registerSleepListener() {
+    	if (!config.smEnabled()) {
+    		return;
+    	}
+        Plugin rawPlugin = Bukkit.getPluginManager().getPlugin("Utilis");
+        if (!(rawPlugin instanceof Utilis)) {
+            plugin.getLogger().warning("[DiscordPlugin] Utilis plugin not found or not valid! Sleep messages wont work!");
+            plugin.getLogger().warning("[DiscordPlugin] Utilis plugin not found or not valid! Sleep messages wont work!");
+            plugin.getLogger().warning("[DiscordPlugin] Utilis plugin not found or not valid! Sleep messages wont work!");
+            return;
+        }
+        Utilis utilis = (Utilis) rawPlugin;
+        UtilisGetters getters = utilis.getUtilisGetters();
+        if (getters == null) {
+            plugin.getLogger().warning("[DiscordPlugin] UtilisGetters is null! Cannot hook sleep messages.");
+            return;
+        }
+        SleepingManager sleepingManager = getters.getSleepingManager();
+        if (sleepingManager == null) {
+            plugin.getLogger().warning("[DiscordPlugin] SleepingManager instance is null! Cannot hook sleep messages.");
+            return;
+        }
+        sleepingManager.addSleepMessageListener(new SleepingManager.SleepMessageListener() {
+            @Override
+            public void onSleepMessage(String message) {
+                // Strip Minecraft color codes
+            	String cleanMsg = message.replaceAll("§[0-9a-fA-Fklmnor]", "");
+            	// Sanitize for Discord
+            	cleanMsg = cleanMsg
+            	    .replaceAll("@everyone", "everyone")
+            	    .replaceAll("@here", "here")
+            	    .replaceAll("@", "(at)")
+            	    .replace("*", "\\*");
+            	// Wrap in thick italics
+            	cleanMsg = "***" + cleanMsg + "***";
+                if (webhookEnabled()) {
+                    WebhookMessageBuilder builder = new WebhookMessageBuilder()
+                        .setContent(cleanMsg);
+                    GetterHandler.webhookClient().send(builder.build());
+                } else {
+                    String channelId = config.messageChannelId();
+                    if (channelId != null && !channelId.isEmpty()) {
+                        TextChannel channel = GetterHandler.jda().getTextChannelById(channelId);
+                        if (channel != null) {
+                            channel.sendMessage(cleanMsg).queue();
+                        } else {
+                            plugin.getLogger().warning("[DiscordPlugin] Discord channel not found: " + channelId);
+                        }
+                    } else {
+                        plugin.getLogger().warning("[DiscordPlugin] No Discord channel ID configured.");
+                    }
+                }
+            }
+        });
+        if (config.debugEnabled()) {
+        	plugin.getLogger().info("[DiscordPlugin] Registered sleep message listener with Utilis SleepingManager.");
+        }
     }
 }

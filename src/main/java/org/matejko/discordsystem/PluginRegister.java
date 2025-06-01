@@ -34,6 +34,7 @@ public final class PluginRegister {
         PluginEventHandler handler = new PluginEventHandler(config, p);
         plugin.getServer().getPluginManager().registerEvents(handler, plugin);
         handler.initPresence();
+        handler.registerSleepListener();
         pm.registerEvents(new BlockActivityListener(), plugin);
 
         // Register Discord event listeners
