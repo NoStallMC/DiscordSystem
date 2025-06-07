@@ -75,7 +75,10 @@ sign:
 # Channel ID for status updates
 status:
   enabled: true
+  header: "%greenOrb% Currently Online: %onlineCount%/%maxCount%"
   channel-id: "YourStatusChannelID"
+  regions: true  # When true adds Region tab to status page, needs set regions using WorldGuard
+  activity: true  # When true adds Activity tab to status page, check activity_config.yml for more info
 
 ################################################################################
 debug: false  # Dont enable unless needed

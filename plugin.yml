@@ -1,7 +1,10 @@
 name: DiscordSystem
 author: ~jkoo
-version: 1.0
+version: 1.2
 main: main.java.org.matejko.discordsystem.DiscordPlugin
+softdepend:
+  - Utilis
+  - WorldGuard
 commands:
 
   signremove:

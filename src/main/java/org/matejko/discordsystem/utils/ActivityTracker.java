@@ -2,12 +2,9 @@ package main.java.org.matejko.discordsystem.utils;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-
 import main.java.org.matejko.discordsystem.configuration.ActivityTrackerConfig;
 import main.java.org.matejko.discordsystem.configuration.Config;
-
 import org.bukkit.Server;
-
 import java.util.*;
 
 public class ActivityTracker {
@@ -22,7 +19,7 @@ public class ActivityTracker {
     ////////////////////////////////////////////////////////////////////////////////
     // Internal tracking data structures
     ////////////////////////////////////////////////////////////////////////////////
-    static final Map<UUID, Integer> activityStrength = new HashMap<>();
+    static final Map<UUID, Double> activityStrength = new HashMap<>();
     static final Map<UUID, PlayerActivity> playerActivities = new HashMap<>();
     static final Map<UUID, Long> activitySetTime = new HashMap<>();
     private static Plugin plugin;
@@ -47,11 +44,11 @@ public class ActivityTracker {
         // Schedule decay task
         server.getScheduler().scheduleSyncRepeatingTask(plugin, new Runnable() {
 			public void run() {
-                Iterator<Map.Entry<UUID, Integer>> iter = activityStrength.entrySet().iterator();
+                Iterator<Map.Entry<UUID, Double>> iter = activityStrength.entrySet().iterator();
                 while (iter.hasNext()) {
-                    Map.Entry<UUID, Integer> entry = iter.next();
+                    Map.Entry<UUID, Double> entry = iter.next();
                     UUID uuid = entry.getKey();
-                    int currentStrength = entry.getValue();
+                    double currentStrength = entry.getValue();
                     PlayerActivity activity = playerActivities.get(uuid);
                     long activityStartTime = activitySetTime.getOrDefault(uuid, 0L);
                     if (activityStartTime == 0L) continue;
@@ -64,9 +61,9 @@ public class ActivityTracker {
                         System.out.println("[ActivityTracker] Cleared expired activity for: " + uuid);
                         }
                     } else {
-                        activityStrength.put(uuid, (int) Math.round(newStrength));
+                        activityStrength.put(uuid, newStrength);
                         if (activity != null && config.debugEnabled()) {
-                            System.out.println("[DEBUG] " + uuid + " current activity: " + activity + " at strength " + (int) newStrength + "%");
+                            System.out.println("[DEBUG] " + uuid + " current activity: " + activity + " at strength " + String.format("%.2f", newStrength) + "%");
                             System.out.println("[ActivityTracker] Decay time: " + decayTimeSeconds + "s -> " + String.format("%.2f", decayPerSecond) + "% per second");
                             System.out.println("[ActivityTracker] Decay interval: " + decaySpeedTicks + " ticks (" + String.format("%.2f", decayIntervalSeconds) + "s) -> " + String.format("%.2f", decayPerInterval) + "% per check");
                         }
@@ -84,15 +81,15 @@ public class ActivityTracker {
         UUID uuid = player.getUniqueId();
         PlayerActivity current = playerActivities.get(uuid);
         if (current != null && current == activity) {
-            int currentStrength = activityStrength.getOrDefault(uuid, 0);
-            int newStrength = Math.min(100, currentStrength + strengthDelta);
+            double currentStrength = activityStrength.getOrDefault(uuid, 0.0);
+            double newStrength = Math.min(100.0, currentStrength + strengthDelta);
             activityStrength.put(uuid, newStrength);
             if (config.debugEnabled()) {
-            System.out.println("[DEBUG] Updated activity strength for " + player.getName() + ": " + currentStrength + "% -> " + newStrength + "%");
+            System.out.println("[DEBUG] Updated activity strength for " + player.getName() + ": " + String.format("%.2f", currentStrength) + "% -> " + String.format("%.2f", newStrength) + "%");
             }
         } else {
             playerActivities.put(uuid, activity);
-            activityStrength.put(uuid, Math.min(100, strengthDelta));
+            activityStrength.put(uuid, Math.min(100.0, strengthDelta));
             if (config.debugEnabled()) {
             System.out.println("[ActivityTracker] Set activity for " + player.getName() + ": " + activity + " at strength " + strengthDelta + "%");
             }

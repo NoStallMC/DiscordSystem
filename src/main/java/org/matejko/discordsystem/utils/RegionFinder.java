@@ -18,16 +18,19 @@ public class RegionFinder {
         if (plugin instanceof WorldGuardPlugin) {
             this.wg = (WorldGuardPlugin) plugin;
         } else {
-            throw new IllegalStateException("WorldGuard plugin not found");
+        	this.wg = null;
         }
     }
 
     public String getRegion(Player player) {
+        if (wg == null) {
+            return "NOTFOUND";
+        }
         Location loc = player.getLocation();
         World world = loc.getWorld();
         RegionManager manager = wg.getRegionManager(world);
         if (manager == null) {
-            return "";
+            return "NOTFOUND";
         }
         ApplicableRegionSet set = manager.getApplicableRegions(loc);
         if (set.size() == 0) {
@@ -40,5 +43,8 @@ public class RegionFinder {
             }
         }
         return "[" + topRegion.getId() + "]";
+    }
+    public boolean isHooked() {
+        return this.wg != null;
     }
 }

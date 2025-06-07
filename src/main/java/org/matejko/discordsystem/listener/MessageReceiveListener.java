@@ -31,40 +31,34 @@ public final class MessageReceiveListener extends ListenerAdapter {
 
         String channelId = event.getChannel().getId();
         String rawContent = event.getMessage().getContentRaw();
-        String sanitizedContent = sanitize(rawContent);
-        String censoredContent = applyCensorship(sanitizedContent);
+        String censoredContent = applyCensorship(rawContent);
+        String sanitizedContent = sanitize(censoredContent);
 
         if (channelId.equals(config.shellChannelId())) {
             if (!config.serverShellEnabled()) {
                 event.getChannel().sendMessage(":no_entry_sign: Server-shell is disabled in config!").queue();
                 return;
             }
-
             List<?> rawList = config.shellAllowedUsers();
             List<String> allowedUsers = new ArrayList<>();
             for (Object obj : rawList) allowedUsers.add(obj.toString());
-
             if (!allowedUsers.contains(userId)) {
                 event.getChannel().sendMessage(":no_entry_sign: You are not authorized to use the server-shell.").queue();
                 return;
             }
-
             if (GetterHandler.getblacklistManager().isCommandBlacklisted(sanitizedContent)) {
                 event.getChannel().sendMessage(":no_entry_sign: This command is blacklisted and cannot be executed.").queue();
                 return;
             }
-
             Bukkit.getLogger().info("[DiscordShell] executing command: " + sanitizedContent);
             Bukkit.getScheduler().scheduleSyncDelayedTask(DiscordPlugin.instance(), () -> {
                 ServerShellSender sender = new ServerShellSender();
                 boolean result = Bukkit.dispatchCommand(sender, sanitizedContent);
                 List<String> output = sender.getOutput();
-
                 if (!result || output.isEmpty()) {
                     event.getChannel().sendMessage(":x: Unknown or failed command: `" + sanitizedContent + "`").queue();
                     return;
                 }
-
                 StringBuilder builder = new StringBuilder(":white_check_mark: **Executed:** `" + sanitizedContent + "`\n```\n");
                 for (int i = 0; i < Math.min(output.size(), 10); i++) {
                     builder.append(output.get(i)).append("\n");
@@ -95,7 +89,6 @@ public final class MessageReceiveListener extends ListenerAdapter {
             // Webhook enabled: delete original and resend via webhook
             if (config.webhookEnabled()) {
                 event.getMessage().delete().queue();
-
                 WebhookMessageBuilder builder = new WebhookMessageBuilder()
                         .setAvatarUrl(event.getAuthor().getEffectiveAvatarUrl())
                         .setUsername(authorName)
@@ -107,7 +100,6 @@ public final class MessageReceiveListener extends ListenerAdapter {
 
     public static String translateColorCodes(String input) {
         if (input == null) return null;
-
         char[] chars = input.toCharArray();
         for (int i = 0; i < chars.length - 1; i++) {
             if (chars[i] == '&') {
@@ -133,7 +125,6 @@ public final class MessageReceiveListener extends ListenerAdapter {
                 .replace("@here", "here")
                 .replace("@", "(at)");
     }
-
     private String applyCensorship(String input) {
         if (!config.messagesCensorEnabled() || !config.censorshipEnabled() || input == null) return input;
 
@@ -153,7 +144,6 @@ public final class MessageReceiveListener extends ListenerAdapter {
         }
         return String.join(" ", words);
     }
-
     private String repeatHashtag(int count) {
         StringBuilder builder = new StringBuilder(count);
         for (int i = 0; i < count; i++) {

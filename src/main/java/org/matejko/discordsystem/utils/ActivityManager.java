@@ -181,16 +181,16 @@ public class ActivityManager {
         UUID uuid = player.getUniqueId();
         PlayerActivity current = playerActivities.get(uuid);
         if (current != null && current == activity) {
-            int currentStrength = activityStrength.getOrDefault(uuid, 0);
-            int newStrength = Math.min(100, currentStrength + strengthDelta);
+            double currentStrength = activityStrength.getOrDefault(uuid, 0.0);
+            double newStrength = Math.min(100.0, currentStrength + strengthDelta);
             activityStrength.put(uuid, newStrength);
         } else {
             playerActivities.put(uuid, activity);
-            activityStrength.put(uuid, Math.min(100, strengthDelta));
+            activityStrength.put(uuid, Math.min(100.0, strengthDelta));
         }
         activitySetTime.put(uuid, System.currentTimeMillis());
         if (config.debugEnabled()) {
-        System.out.println("[ActivityTracker] Set activity for " + player.getName() + ": " + activity + " at " + System.currentTimeMillis());
+            System.out.println("[ActivityTracker] Set activity for " + player.getName() + ": " + activity + " at " + System.currentTimeMillis() + " with strength " + String.format("%.2f", activityStrength.get(uuid)));
         }
     }
 }

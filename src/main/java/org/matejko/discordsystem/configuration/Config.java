@@ -178,9 +178,21 @@ public class Config {
     public boolean statusEnabled() {
         return config.getBoolean("status.enabled", false);
     }
-
+    
+    public String statusHeader() {
+        return config.getString("status.header", "%greenOrb% Currently Online: %onlineCount%/%maxCount%");
+    }
+    
     public String statusChannelId() {
         return config.getString("status.channel-id", "YourStatusChannelID");
+    }
+    
+    public boolean statusRegionEnabled() {
+        return config.getBoolean("status.regions", false);
+    }
+    
+    public boolean statusActivityEnabled() {
+        return config.getBoolean("status.activity", false);
     }
     
     public boolean debugEnabled() {

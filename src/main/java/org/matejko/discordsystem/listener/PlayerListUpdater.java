@@ -39,7 +39,7 @@ public class PlayerListUpdater implements Listener {
     public PlayerListUpdater(PlaytimeManager playtimeManager, Config config) {
     	PlayerListUpdater.config = config;
         this.playtimeManager = playtimeManager;
-        this.playerListBuilder = new PlayerListBuilder(playtimeManager, regionFinder);
+        this.playerListBuilder = new PlayerListBuilder(playtimeManager, regionFinder, config);
         this.messageCacheManager = new MessageCacheManager(playersPerPage, playerListBuilder);
     }
 
