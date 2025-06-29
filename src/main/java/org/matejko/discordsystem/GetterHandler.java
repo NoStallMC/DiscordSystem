@@ -4,6 +4,7 @@ import club.minnced.discord.webhook.WebhookClient;
 import main.java.org.matejko.discordsystem.configuration.ActivityTrackerConfig;
 import main.java.org.matejko.discordsystem.configuration.Config;
 import main.java.org.matejko.discordsystem.listener.BlacklistManager;
+import main.java.org.matejko.discordsystem.utils.EmojiSetGetter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -70,7 +71,10 @@ public final class GetterHandler {
         if (config.webhookEnabled()) {
             sendEmbedFromMessageData(startMsg);
         } else {
-            sendPlainMessage("✅ " + config.serverName() + " is on.");
+            String messageraw = config.getNormalServerStartMessages()
+                    .replace("%ServerName%", config.serverName());
+            String message = EmojiSetGetter.translateEmojis(messageraw);
+            sendPlainMessage(message);
         }
     }
 
@@ -80,7 +84,10 @@ public final class GetterHandler {
         if (config.webhookEnabled()) {
             sendEmbedFromMessageData(shutdownMsg);
         } else {
-            sendPlainMessage("❌ " + config.serverName() + " is off.");
+            String messageraw = config.getNormalServerShutdownMessages()
+                    .replace("%ServerName%", config.serverName());
+            String message = EmojiSetGetter.translateEmojis(messageraw);
+            sendPlainMessage(message);
         }
         jda.shutdown();
     }
@@ -105,19 +112,21 @@ public final class GetterHandler {
     }
 
     private static MessageData getServerStartMessage() {
-        return readMessageDataFromConfig("messages.server-start-message",
+        return readMessageDataFromConfig("messages.rich-server-start-message",
                 new MessageData("Server", "Information", "Server started.", Color.GREEN));
     }
 
     private static MessageData getServerShutdownMessage() {
-        return readMessageDataFromConfig("messages.server-shutdown-message",
+        return readMessageDataFromConfig("messages.rich-server-shutdown-message",
                 new MessageData("Server", "Information", "Server stopped.", Color.RED));
     }
 
     private static MessageData readMessageDataFromConfig(String path, MessageData def) {
-        String author = config.getString(path + ".author");
+        String authorraw = config.getString(path + ".author");
+        String author = EmojiSetGetter.translateEmojis(authorraw);
         if (author == null) author = def.author;
-        String title = config.getString(path + ".title");
+        String titleraw = config.getString(path + ".title");
+        String title = EmojiSetGetter.translateEmojis(titleraw);
         if (title == null) title = def.title;
         List<String> descLines = null;
         try {
@@ -127,7 +136,8 @@ public final class GetterHandler {
         if (descLines != null && !descLines.isEmpty()) {
             description = String.join("\n", descLines);
         } else {
-            String singleDesc = config.getString(path + ".description");
+            String singleDescraw = config.getString(path + ".description");
+            String singleDesc = EmojiSetGetter.translateEmojis(singleDescraw);
             if (singleDesc != null) {
                 description = singleDesc;
             } else {

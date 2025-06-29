@@ -3,13 +3,14 @@ package main.java.org.matejko.discordsystem;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import main.java.org.matejko.discordsystem.configuration.CensorshipRulesManager;
 import main.java.org.matejko.discordsystem.configuration.Config;
+import main.java.org.matejko.discordsystem.utils.EmojiSetGetter;
 import main.java.org.matejko.utilis.Utilis;
 import main.java.org.matejko.utilis.Managers.SleepingManager;
 import main.java.org.matejko.utilis.UtilisCore.UtilisGetters;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChatEvent;
@@ -26,10 +27,16 @@ public class PluginEventHandler implements Listener {
         this.plugin = plugin;
     }
 
-    // Call this once on plugin enable to set default presence (0 players)
+    // Setting default presence (0 players online)
     public void initPresence() {
+        int maxPlayers = Bukkit.getMaxPlayers();
+        String activity = config.bact()
+        .replace("%onlineCount%", String.valueOf("0"))
+        .replace("%ServerName%", config.serverName())
+        .replace("%maxCount%", String.valueOf(maxPlayers));
+
         GetterHandler.jda().getPresence().setActivity(
-            Activity.playing(config.serverName() + " with 0 players")
+            Activity.playing(activity)
         );
     }
 
@@ -71,13 +78,22 @@ public class PluginEventHandler implements Listener {
                 int maxPlayers = Bukkit.getMaxPlayers();
                 String playerName = event.getPlayer().getName();
                 String displayName = sanitizeDisplayName(event.getPlayer().getDisplayName());
-
-                String message = config.joinMessage()
+                String messageraw = config.joinMessage()
                     .replace("%PlayerName%", playerName)
                     .replace("%DisplayName%", displayName)
                     .replace("%onlineCount%", String.valueOf(online))
                     .replace("%maxCount%", String.valueOf(maxPlayers));
+                String message = EmojiSetGetter.translateEmojis(messageraw);
 
+                String activityraw = config.bact()
+                    .replace("%onlineCount%", String.valueOf(online))
+                    .replace("%ServerName%", config.serverName())
+                    .replace("%maxCount%", String.valueOf(maxPlayers));
+                String activity = EmojiSetGetter.translateEmojis(activityraw);
+
+                GetterHandler.jda().getPresence().setActivity(
+                    Activity.playing(activity)
+                );
                 if (webhookEnabled()) {
                     WebhookMessageBuilder builder = new WebhookMessageBuilder()
                         .setAvatarUrl("http://minotar.net/helm/" + playerName + "/100.png")
@@ -87,10 +103,6 @@ public class PluginEventHandler implements Listener {
                 } else {
                     sendBotMessage(message);
                 }
-
-                GetterHandler.jda().getPresence().setActivity(
-                    Activity.playing(config.serverName() + " with " + online + " players")
-                );
             }
         }, 1L);
     }
@@ -101,17 +113,22 @@ public class PluginEventHandler implements Listener {
         int maxPlayers = Bukkit.getMaxPlayers();
         String playerName = event.getPlayer().getName();
         String displayName = sanitizeDisplayName(event.getPlayer().getDisplayName());
-
-        String message = config.quitMessage()
+        String messageraw = config.quitMessage()
             .replace("%PlayerName%", playerName)
             .replace("%DisplayName%", displayName)
             .replace("%onlineCount%", String.valueOf(online))
             .replace("%maxCount%", String.valueOf(maxPlayers));
+        String message = EmojiSetGetter.translateEmojis(messageraw);
+
+        String activityraw = config.bact()
+        	.replace("%onlineCount%", String.valueOf(online))
+        	.replace("%ServerName%", config.serverName())
+        	.replace("%maxCount%", String.valueOf(maxPlayers));
+        String activity = EmojiSetGetter.translateEmojis(activityraw);
 
         GetterHandler.jda().getPresence().setActivity(
-            Activity.playing(config.serverName() + " with " + online + " players")
+            Activity.playing(activity)
         );
-
         if (webhookEnabled()) {
             WebhookMessageBuilder builder = new WebhookMessageBuilder()
                 .setAvatarUrl("http://minotar.net/helm/" + playerName + "/100.png")
@@ -138,12 +155,13 @@ public class PluginEventHandler implements Listener {
                 words[i] = repeatHashtag(word.length());
             }
         }
-        String censoredMessage = String.join(" ", words);
-        String content = config.chatMessage()
+        String censoredMessageRaw = String.join(" ", words);
+        String censoredMessage = EmojiSetGetter.translateEmojis(censoredMessageRaw);
+        String contentRaw = config.chatMessage()
             .replace("%PlayerName%", playerName)
             .replace("%DisplayName%", displayName)
             .replace("%message%", censoredMessage);
-
+        String content = EmojiSetGetter.translateEmojis(contentRaw);
         if (webhookEnabled()) {
             WebhookMessageBuilder builder = new WebhookMessageBuilder()
                 .setAvatarUrl("http://minotar.net/helm/" + playerName + "/100.png")
@@ -163,7 +181,6 @@ public class PluginEventHandler implements Listener {
         return builder.toString();
     }
 
-    // Your new method:
     public void registerSleepListener() {
     	if (!config.smEnabled()) {
     		return;
@@ -188,7 +205,7 @@ public class PluginEventHandler implements Listener {
         }
         sleepingManager.addSleepMessageListener(new SleepingManager.SleepMessageListener() {
             @Override
-            public void onSleepMessage(String message) {
+            public void onSleepMessage(Player sleeper, String message) {
                 // Strip Minecraft color codes
             	String cleanMsg = message.replaceAll("§[0-9a-fA-Fklmnor]", "");
             	// Sanitize for Discord
@@ -197,18 +214,20 @@ public class PluginEventHandler implements Listener {
             	    .replaceAll("@here", "here")
             	    .replaceAll("@", "(at)")
             	    .replace("*", "\\*");
-            	// Wrap in thick italics
-            	cleanMsg = "***" + cleanMsg + "***";
+            	cleanMsg = config.smFormat().replace("%sleepmessage%", cleanMsg);
+                String cleanMsgFinal = EmojiSetGetter.translateEmojis(cleanMsg);
                 if (webhookEnabled()) {
                     WebhookMessageBuilder builder = new WebhookMessageBuilder()
-                        .setContent(cleanMsg);
+                        .setAvatarUrl("http://minotar.net/helm/" + sleeper.getName() + "/100.png")
+                    	.setUsername(sanitizeDisplayName(sleeper.getDisplayName()))
+                        .setContent(cleanMsgFinal);
                     GetterHandler.webhookClient().send(builder.build());
                 } else {
                     String channelId = config.messageChannelId();
                     if (channelId != null && !channelId.isEmpty()) {
                         TextChannel channel = GetterHandler.jda().getTextChannelById(channelId);
                         if (channel != null) {
-                            channel.sendMessage(cleanMsg).queue();
+                            channel.sendMessage(cleanMsgFinal).queue();
                         } else {
                             plugin.getLogger().warning("[DiscordPlugin] Discord channel not found: " + channelId);
                         }

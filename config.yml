@@ -1,13 +1,14 @@
-# Discord Bot Configuration File
+# Discord Bot Configuration File:
 
-# Your Discord Bot Token (keep it secret :D ) and Your Discord Bot ID (Needed to prevent spam in server-shell)
+# Your Discord Bot Token (keep it secret :D) and Your Discord Bot ID (Needed to prevent spam in server-shell).
 token: "YourBotToken"
 bot-id: "YourBotID"
 server-name: "MyServer"  # Set this to your server name!
+bot-activity: "%ServerName% with %onlineCount% players online!"  # Set this as your bot presence.
 
-# Discord Webhook URL for sending messages
+# Discord Webhook feature, for sending pretty messages:
 webhook:
-  enabled: true  # If false normal messages will be sent instead
+  enabled: true  # If false normal messages will be sent instead.
   url: "YourWebhookURL"
   
 censorship: # Dont forget to change default values!
@@ -15,73 +16,83 @@ censorship: # Dont forget to change default values!
   own: true  # If false it relies on censorship rules from ChatGuard plugin dir.
 
 messages:
-  channel-id: "YourMessageChannelID"  # Discord channel ID where most messages will be sent
+  channel-id: "YourMessageChannelID"  # Discord channel ID where most messages will be sent.
   
-  censor: false  # Allows censorship of messages sent in channel, censorship has to be true
+  censor: false  # Allows censorship of messages sent in channel, censorship has to be true.
   
-  sleepmessages: false  # Allows sending of custom sleepmessages from Utilis/NightSkip (NoStallMC one).
+  sleepmessages: false  # Allows sending of custom sleepmessages from Utilis.
   
-  # Format for chat messages sent from Discord to Server chat
-  chat-game-message: "&f[&bDiscord&f] &7%user%: %content%"  # %user% = Discord username, %content% = message content
-
-  # %PlayerName% = Player name, %DisplayName% = Player display name (use this one for nicknames), %message% = chat message
+  sleepmessages-format: "***%sleepmessage%***"  # Format of sleepmessages.
   
-  # Format for chat messages sent from Server to Discord
+  # Format for chat messages sent from Discord to Server chat:
+  chat-game-message: "&f[&bDiscord&f] &7%user%: %content%"
+  # %user% = Discord username, %content% = message content
+  
+  # Format for chat messages sent from Server to Discord:
   game-chat-message: "**%DisplayName%**: %message%"
+  # %DisplayName% = Player display name (use this if you have nicknames on server).
+  # %PlayerName% = Player name. 
+  # %message% = chat message.
+  
+  # Message format when a player joins the server:
+  join-message: "**%DisplayName%** Has Joined. [%onlineCount%/%maxCount%]"
 
-  # Message format when a player joins the server
-  join-message: "**%DisplayName%** Has Joined. [%onlineCount%/%maxCount%]"  # %onlineCount%, %maxCount% are placeholders too
+  # Message format when a player leaves the server:
+  quit-message: "**%DisplayName%** Has Left. [%onlineCount%/%maxCount%]"
 
-  # Message format when a player leaves the server
-  quit-message: "**%DisplayName%** Has Left. [%onlineCount%/%maxCount%]"  
+  # Normal embed message sent on server start:
+  normal-server-start-message: "%ServerName% is on!"
+  
+  # Normal embed message sent on server shutdown:
+  normal-server-shutdown-message: "%ServerName% is off!"
+  
+  # Rich embed message sent on server start:
+  rich-server-start-message:
+    author: ServerName  # Embed author name.
+    title: Server has started!  # Embed title.
+    description: |  # Embed multi-line description text.
+      Server is back online!
+    color: GREEN  # Embed color indicator.
 
-  server-start-message:  # Rich embed message sent on server start
-    author: Server  # Embed author name
-    title: Information  # Embed title
-    description: |  # Embed multi-line description text
-      Line 1
-      Line 2
-      Line 3
-    color: GREEN  # Embed color indicator
-
-  server-shutdown-message:  # Rich embed message sent on server shutdown
-    author: Server
-    title: Information
+  # Rich embed message sent on server shutdown:
+  rich-server-shutdown-message:
+    author: ServerName
+    title: Server has stopped!
     description: |
-      Line 1
+      Server is taking a nap.
     color: RED
 
-# Enable or disable the server shell feature
+# Enable or disable the server shell feature:
 server-shell:
   enabled: false
-
-  # Allows Discord BOTS to interact with server shell.
-  allow-bots: false
-
-  # Channel ID for server shell commands
   channel-id: "YourShellChannelID"
+
+  # Allows Discord BOTs to interact with server shell.
+  allow-bots: false
   
-  # List of users allowed to use the shell commands
+  # List of users allowed to use the shell commands:
   allowed-users:
     - discordID1
     - discordID2
 
-# Channel ID for sign placements
+# Channel for logging sign placements:
 sign:
   enabled: true
-  censor: false  # Allows censorship of messages sent in channel, censorship has to be true
   channel-id: "YourSignChannelID"
 
-# Channel ID for status updates
+  # Allows censorship of messages sent in channel, censorship has to be true.
+  censor: false
+
+# Channel for player statuses:
 status:
   enabled: true
-  header: "%greenOrb% Currently Online: %onlineCount%/%maxCount%"
   channel-id: "YourStatusChannelID"
-  regions: true  # When true adds Region tab to status page, needs set regions using WorldGuard
-  activity: true  # When true adds Activity tab to status page, check activity_config.yml for more info
+  header: ":green_circle: Currently Online: %onlineCount%/%maxCount%"
+  regions: true  # When true adds Region tab to status page, needs set regions using WorldGuard.
+  activity: true  # When true adds Activity tab to status page, check activity_config.yml for more info.
 
 ################################################################################
-debug: false  # Dont enable unless needed
+debug: false  # Dont enable unless needed.
 ################################################################################
 
 # End of config - Made by ~jkoo :D

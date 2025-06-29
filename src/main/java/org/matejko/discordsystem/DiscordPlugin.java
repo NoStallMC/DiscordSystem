@@ -7,6 +7,7 @@ import main.java.org.matejko.discordsystem.configuration.Config;
 import main.java.org.matejko.discordsystem.listener.PlayerListUpdater;
 import main.java.org.matejko.discordsystem.listener.PlaytimeManager;
 import main.java.org.matejko.discordsystem.utils.ActivityManager;
+import main.java.org.matejko.discordsystem.utils.EmojiSetGetter;
 
 public final class DiscordPlugin extends JavaPlugin {
     private static DiscordPlugin instance;
@@ -23,6 +24,7 @@ public final class DiscordPlugin extends JavaPlugin {
 
         // Initialize configs first!
         config = new Config(this);
+        EmojiSetGetter.getEmojiMap();
         censorshipRules = new CensorshipRulesManager(getDataFolder(), config);
         
         // Initialize Discord-related handlers (JDA, webhook, config)

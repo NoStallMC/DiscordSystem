@@ -3,6 +3,7 @@ package main.java.org.matejko.discordsystem.listener;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import main.java.org.matejko.discordsystem.utils.ActivityTracker;
+import main.java.org.matejko.discordsystem.utils.EmojiSetGetter;
 import main.java.org.matejko.discordsystem.utils.RegionFinder;
 import main.java.org.matejko.discordsystem.configuration.Config;
 import java.util.ArrayList;
@@ -60,12 +61,12 @@ public class PlayerListBuilder {
     ////////////////////////////////////////////////////////////////////////////////
     public String buildPage(List<Player> players, int totalOnline, int max) {
         StringBuilder sb = new StringBuilder("```ansi\n");
-        String headerRaw = config.statusHeader();
-        String header = headerRaw
-                .replace("%greenOrb%", "🟢")
+        String headerRaw = config.statusHeader()
                 .replace("%onlineCount%", String.valueOf(totalOnline))
                 .replace("%maxCount%", String.valueOf(max));
-        sb.append("\u001B[1;36m").append(header).append("\u001B[0m\n\n");
+
+        String headerWithEmojis = EmojiSetGetter.translateEmojis(headerRaw);
+        sb.append("\u001B[1;36m").append(headerWithEmojis).append("\u001B[0m\n\n");
 
         String headerFormat = buildHeaderFormat();
         sb.append(String.format(headerFormat, buildHeaders()));

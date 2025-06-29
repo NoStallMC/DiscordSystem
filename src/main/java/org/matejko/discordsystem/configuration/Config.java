@@ -92,6 +92,10 @@ public class Config {
         return config.getString("server-name", "MyServer");
     }
 
+    public String bact() {
+        return config.getString("bot-activity", "%ServerName% with %onlineCount% players online!");
+    }
+
     public boolean webhookEnabled() {
         return config.getBoolean("webhook.enabled", true);
     }
@@ -120,6 +124,10 @@ public class Config {
         return config.getBoolean("messages.sleepmessages", false);
     }
     
+    public String smFormat() {
+        return config.getString("messages.sleepmessages-format", "***%sleepmessage%***");
+    }
+    
     public String joinMessage() {
         return config.getString("messages.join-message", "%username% connected. (%onlineCount%/%maxCount%)");
     }
@@ -135,15 +143,13 @@ public class Config {
     public String messageFormat() {
         return config.getString("messages.chat-game-message", "&f[&bDiscord&f] &7%user%: %content%");
     }
-    
-    public List<String> getServerStartMessages() {
-        return config.getStringList("messages.server-start-message", new ArrayList<String>());
+    public String getNormalServerStartMessages() {
+        return config.getString("messages.normal-server-start-message", "%ServerName% is on!");
+    }
+    public String getNormalServerShutdownMessages() {
+        return config.getString("messages.normal-server-start-message", "%ServerName% is off!");
     }
 
-    public List<String> getServerShutdownMessages() {
-        return config.getStringList("messages.server-shutdown-message", new ArrayList<String>());
-    }
-    
     public boolean serverShellEnabled() {
         return config.getBoolean("server-shell.enabled", false);
     }
