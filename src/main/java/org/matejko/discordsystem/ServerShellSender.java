@@ -6,13 +6,14 @@ import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.*;
 import org.bukkit.plugin.Plugin;
-
 import java.util.*;
 
 public class ServerShellSender implements CommandSender {
-
     private final List<String> output = new ArrayList<>();
-
+    private final DiscordPlugin plugin;
+    public ServerShellSender(DiscordPlugin plugin) {
+        this.plugin = plugin;
+    }
     ///////////////////////////////////////////////////////////////////////////
     // Output handling
     ///////////////////////////////////////////////////////////////////////////
@@ -25,7 +26,7 @@ public class ServerShellSender implements CommandSender {
     public void sendMessage(String message) {
         String cleaned = ChatColor.stripColor(message);
         output.add(cleaned);
-        System.out.println("[DiscordShell] " + cleaned);
+        plugin.getLogger().info("[DiscordShell] " + cleaned);
     }
     public void sendMessage(String[] messages) {
         for (String message : messages) {

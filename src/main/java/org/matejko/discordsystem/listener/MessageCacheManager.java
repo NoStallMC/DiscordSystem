@@ -22,20 +22,22 @@ public class MessageCacheManager {
     public MessageCacheManager(int playersPerPage, PlayerListBuilder playerListBuilder) {
         this.playerListBuilder = playerListBuilder;
         this.playersPerPage = playersPerPage;
+    }
+    public void init() {
         scheduleMessageCleanup();
     }
-
     /////////////////////////////////////////////////////////////////////////////
     // Fetch Messages Based on Cached IDs
     /////////////////////////////////////////////////////////////////////////////
     public void fetchMessages(TextChannel channel, List<String> ids) {
         for (String id : ids) {
-            try {
-                Message msg = channel.retrieveMessageById(id).complete();
-                if (msg != null) {
-                    messageCache.add(msg);
+            channel.retrieveMessageById(id).queue(
+                msg -> {
+                    if (msg != null) messageCache.add(msg);
+                },
+                failure -> {
                 }
-            } catch (Exception ignored) {}
+            );
         }
     }
 
@@ -108,6 +110,7 @@ public class MessageCacheManager {
     // Cleanup Bot Messages in the Channel
     /////////////////////////////////////////////////////////////////////////////
     private void cleanUpMessages() {
+    	if (GetterHandler.jda() == null) return;
         String channelId = GetterHandler.configuration().statusChannelId();
         TextChannel channel = GetterHandler.jda().getTextChannelById(channelId);
         if (channel == null) {

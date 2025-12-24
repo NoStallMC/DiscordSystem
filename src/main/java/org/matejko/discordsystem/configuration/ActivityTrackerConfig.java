@@ -27,7 +27,6 @@ public class ActivityTrackerConfig {
         if (pluginFolder == null) {
             throw new IllegalStateException("Plugin folder not set! Call setPluginFolder() first.");
         }
-
         if (!configFile.exists()) {
             copyDefaultConfigToServer();
         }
@@ -101,5 +100,11 @@ public class ActivityTrackerConfig {
     ////////////////////////////////////////////////////////////////////////////
     public static int getThreshold(String key, int def) {
         return config.getInt("Thresholds." + key, def);
+    }
+    public static String getActivityName(String key, String def) {
+        if (config == null) return def;
+        String name = config.getString("Names." + key.toLowerCase(), def);
+        if (name == null || name.trim().isEmpty()) return def;
+        return name;
     }
 }

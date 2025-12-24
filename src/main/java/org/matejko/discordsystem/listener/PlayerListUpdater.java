@@ -7,19 +7,17 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-
 import main.java.org.matejko.discordsystem.DiscordPlugin;
 import main.java.org.matejko.discordsystem.GetterHandler;
 import main.java.org.matejko.discordsystem.configuration.Config;
+import main.java.org.matejko.discordsystem.utils.ActivityManager;
 import main.java.org.matejko.discordsystem.utils.ActivityTracker;
 import main.java.org.matejko.discordsystem.utils.RegionFinder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 public class PlayerListUpdater implements Listener {
-	
     ////////////////////////////////////////////////////////////////////////////////
     // Variables Initialization
     ////////////////////////////////////////////////////////////////////////////////
@@ -33,13 +31,18 @@ public class PlayerListUpdater implements Listener {
     private final Map<UUID, String> playerRegions = new HashMap<>();
     private final Map<UUID, ActivityTracker.PlayerActivity> playerActivities = new HashMap<>();
     private int repeatingTaskId = -1;
+    private int regionTaskId = -1;
+    private int afkTaskId = -1;
     private boolean isUpdating = false;
+    @SuppressWarnings("unused")
+	private static DiscordPlugin plugin;
 	private static Config config;
 
-    public PlayerListUpdater(PlaytimeManager playtimeManager, Config config) {
+    public PlayerListUpdater(PlaytimeManager playtimeManager, Config config, DiscordPlugin plugin) {
     	PlayerListUpdater.config = config;
+    	PlayerListUpdater.plugin = plugin;
         this.playtimeManager = playtimeManager;
-        this.playerListBuilder = new PlayerListBuilder(playtimeManager, regionFinder, config);
+        this.playerListBuilder = new PlayerListBuilder(playtimeManager, regionFinder, config, plugin);
         this.messageCacheManager = new MessageCacheManager(playersPerPage, playerListBuilder);
     }
 
@@ -50,7 +53,7 @@ public class PlayerListUpdater implements Listener {
         String channelId = GetterHandler.configuration().statusChannelId();
         TextChannel channel = GetterHandler.jda().getTextChannelById(channelId);
         if (channel == null) return;
-
+        messageCacheManager.init();
         // Fetch messageIDs
         List<String> ids = new ArrayList<>();
         for (Message msg : messageCacheManager.getMessageCache()) {
@@ -58,32 +61,52 @@ public class PlayerListUpdater implements Listener {
         }
         messageCacheManager.fetchMessages(channel, ids);
 
-        // Schedule the initial message preparation
+        // Schedule the initial message preparation + /reload safeness
         Bukkit.getScheduler().scheduleSyncDelayedTask(DiscordPlugin.instance(), () -> {
             messageCacheManager.prepareMessageCache(channel);
             updateMessages();
-        }, 10L);
-
-        // Schedule the repeating update task
-        repeatingTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(
-            DiscordPlugin.instance(), this::updateMessagesSafe, 0L, updateIntervalTicks
-        );
-
-        // Schedule region check task
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(DiscordPlugin.instance(), this::checkPlayerRegionsAndActivities, 0L, regionCheckIntervalTicks);
-        
-        // Debug: Log playtimes every 20 seconds (400 ticks)
-        if (config.debugEnabled()) {
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(DiscordPlugin.instance(), () -> {
-            System.out.println("[DEBUG] Player playtimes:");
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                String minutes = playtimeManager.getSessionTime(player);
-                System.out.println(" - " + player.getName() + ": " + minutes + " min");
+            if (Bukkit.getOnlinePlayers().length > 0) {
+                startActiveTasks();
             }
-        }, 0L, 400L);
+        }, 10L);
+    }
+    private void startActiveTasks() {
+        if (repeatingTaskId == -1) {
+            repeatingTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(
+                DiscordPlugin.instance(), this::updateMessagesSafe, updateIntervalTicks, updateIntervalTicks
+            );
+        }
+        if (regionTaskId == -1) {
+            regionTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(
+                DiscordPlugin.instance(), this::checkPlayerRegionsAndActivities, regionCheckIntervalTicks, regionCheckIntervalTicks
+            );
+        }
+        if (afkTaskId == -1) {
+            afkTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(
+                DiscordPlugin.instance(), () -> ActivityManager.tickAFKActivity(), 0L, 100L
+            );
+        }
+        if (config.debugEnabled()) {
+            PlaytimeManager.getLogger().info("[DEBUG] All active status tasks started (Player online).");
         }
     }
-
+    private void stopActiveTasks() {
+        if (repeatingTaskId != -1) {
+            Bukkit.getScheduler().cancelTask(repeatingTaskId);
+            repeatingTaskId = -1;
+        }
+        if (regionTaskId != -1) {
+            Bukkit.getScheduler().cancelTask(regionTaskId);
+            regionTaskId = -1;
+        }
+        if (afkTaskId != -1) {
+            Bukkit.getScheduler().cancelTask(afkTaskId);
+            afkTaskId = -1;
+        }
+        if (config.debugEnabled()) {
+            PlaytimeManager.getLogger().info("[DEBUG] All active status tasks stopped (Server empty).");
+        }
+    }
     ////////////////////////////////////////////////////////////////////////////////
     // Update Messages for Player List
     ////////////////////////////////////////////////////////////////////////////////
@@ -104,10 +127,9 @@ public class PlayerListUpdater implements Listener {
                 newContent = "\u200B";
             }
             if (!msg.getContentRaw().equals(newContent)) {
-                try {
-                    msg.editMessage(newContent).submit().get(5, TimeUnit.SECONDS);
-                } catch (Exception e) {
-                }
+                msg.editMessage(newContent).queue(null, throwable -> {
+                    messageCacheManager.getMessageCache().clear();
+                });
             }
         }
     }
@@ -173,8 +195,12 @@ public class PlayerListUpdater implements Listener {
         playtimeManager.handleJoin(e);
         playerRegions.put(e.getPlayer().getUniqueId(), regionFinder.getRegion(e.getPlayer()));
         playerActivities.put(e.getPlayer().getUniqueId(), ActivityTracker.getActivity(e.getPlayer()));
+        updateMessages();
+        if (Bukkit.getOnlinePlayers().length == 1) {
+            startActiveTasks();
+        }
         if (config.debugEnabled()) {
-    	System.out.println("[DEBUG] " + player + " joined!");
+        	PlaytimeManager.getLogger().info("[DEBUG] " + player + " joined!");
         }
     }
 
@@ -187,8 +213,12 @@ public class PlayerListUpdater implements Listener {
     	playtimeManager.handleQuit(e);
     	playerRegions.remove(player.getUniqueId());
     	ActivityTracker.clearActivity(player);
+    	updateMessages();
+    	if (Bukkit.getOnlinePlayers().length - 1 == 0) {
+            stopActiveTasks();
+        }
     	if (config.debugEnabled()) {
-    	System.out.println("[DEBUG] " + player + " left!");
+    		PlaytimeManager.getLogger().info("[DEBUG] " + player + " left!");
     	}
     }
 }

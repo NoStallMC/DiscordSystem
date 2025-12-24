@@ -1,10 +1,6 @@
 package main.java.org.matejko.discordsystem.configuration;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.FileOutputStream;
 import java.util.List;
 import java.util.ArrayList;
 import org.bukkit.util.config.Configuration;
@@ -12,7 +8,6 @@ import main.java.org.matejko.discordsystem.DiscordPlugin;
 
 public class Config {
     private static final String CONFIG_NAME = "config.yml";
-    private static final String DEFAULT_CONFIG_PATH = "/" + CONFIG_NAME;
     private final DiscordPlugin plugin;
     private final File configFile;
     private Configuration config;
@@ -21,19 +16,12 @@ public class Config {
     public Config(DiscordPlugin plugin) {
         this.plugin = plugin;
         this.configFile = new File(plugin.getDataFolder(), CONFIG_NAME);
-        if (!configFile.exists()) {
-            try {
-                copyDefaultConfigToServer();
-                plugin.getLogger().info("[DiscordConfig] Default config.yml copied from JAR.");
-            } catch (IOException e) {
-                plugin.getLogger().severe("[DiscordConfig] Failed to copy default config: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
+        new ConfigUpdater(plugin).checkAndUpdateConfig();
         loadConfig();
     }
 
     public void loadConfig() {
+    	plugin.getLogger().info("[DiscordSystem] Initializing...");
         try {
             config = new Configuration(configFile);
             config.load();
@@ -42,25 +30,6 @@ public class Config {
             plugin.getLogger().severe("[DiscordConfig] Error loading config file: " + e.getMessage());
             e.printStackTrace();
             loaded = false;
-        }
-    }
-
-    private void copyDefaultConfigToServer() throws IOException {
-        File dataFolder = plugin.getDataFolder();
-        if (!dataFolder.exists() && !dataFolder.mkdirs()) {
-            throw new IOException("[DiscordConfig] Failed to create plugin data folder: " + dataFolder.getPath());
-        }
-        try (InputStream inputStream = getClass().getResourceAsStream(DEFAULT_CONFIG_PATH)) {
-            if (inputStream == null) {
-                throw new IOException("[DiscordConfig] Default config (" + CONFIG_NAME + ") not found in JAR resources.");
-            }
-            try (OutputStream outputStream = new FileOutputStream(configFile)) {
-                byte[] buffer = new byte[1024];
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, bytesRead);
-                }
-            }
         }
     }
     
@@ -121,7 +90,7 @@ public class Config {
     }
     
     public boolean smEnabled() {
-        return config.getBoolean("messages.sleepmessages", false);
+        return config.getBoolean("messages.sleepmessages.enabled", false);
     }
     
     public String smFormat() {
@@ -137,17 +106,17 @@ public class Config {
     }
 
     public String chatMessage() {
-        return config.getString("messages.game-chat-message", "%messageAuthor%: %message%");
+        return config.getString("messages.game-chat-message.message", "%messageAuthor%: %message%");
     }
 
     public String messageFormat() {
-        return config.getString("messages.chat-game-message", "&f[&bDiscord&f] &7%user%: %content%");
+        return config.getString("messages.chat-game-message.message", "&f[&bDiscord&f] &7%user%: %content%");
     }
     public String getNormalServerStartMessages() {
         return config.getString("messages.normal-server-start-message", "%ServerName% is on!");
     }
     public String getNormalServerShutdownMessages() {
-        return config.getString("messages.normal-server-start-message", "%ServerName% is off!");
+        return config.getString("messages.normal-server-shutdown-message", "%ServerName% is off!");
     }
 
     public boolean serverShellEnabled() {
@@ -164,9 +133,34 @@ public class Config {
         defaults.add("player2");
         return config.getStringList("server-shell.allowed-users", defaults);
     }
-    
+
+    public List<String> shellAllowedRoles() {
+        List<String> defaults = new ArrayList<>();
+        defaults.add("role1");
+        defaults.add("role2");
+        return config.getStringList("server-shell.allowed-roles", defaults);
+    }
+
     public boolean serverShellAllowBots() {
-        return config.getBoolean("server-shell.allow-bots", false);
+        return config.getBoolean("server-shell.allow-bots.value", false);
+    }
+
+    public boolean checkEnabled() {
+        return config.getBoolean("check.enabled", false);
+    }
+
+    public List<String> checkAllowedUsers() {
+        List<String> defaults = new ArrayList<>();
+        defaults.add("player1");
+        defaults.add("player2");
+        return config.getStringList("check.allowed-users", defaults);
+    }
+
+    public List<String> checkAllowedRoles() {
+        List<String> defaults = new ArrayList<>();
+        defaults.add("role1");
+        defaults.add("role2");
+        return config.getStringList("check.allowed-roles", defaults);
     }
     
     public boolean signEnabled() {
@@ -194,14 +188,18 @@ public class Config {
     }
     
     public boolean statusRegionEnabled() {
-        return config.getBoolean("status.regions", false);
+        return config.getBoolean("status.regions.enabled", false);
     }
     
     public boolean statusActivityEnabled() {
-        return config.getBoolean("status.activity", false);
+        return config.getBoolean("status.activity.enabled", false);
     }
     
     public boolean debugEnabled() {
         return config.getBoolean("debug", false);
+    }
+
+    public String configVersion() {
+    	return config.getString("version", null);
     }
 }

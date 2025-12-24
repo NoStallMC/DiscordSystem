@@ -1,98 +1,102 @@
-# Discord Bot Configuration File:
-
-# Your Discord Bot Token (keep it secret :D) and Your Discord Bot ID (Needed to prevent spam in server-shell).
 token: "YourBotToken"
 bot-id: "YourBotID"
-server-name: "MyServer"  # Set this to your server name!
-bot-activity: "%ServerName% with %onlineCount% players online!"  # Set this as your bot presence.
+server-name: "MyServer"
+bot-activity: "%ServerName% with %onlineCount% players online!"
 
-# Discord Webhook feature, for sending pretty messages:
 webhook:
-  enabled: true  # If false normal messages will be sent instead.
+  info: "Discord Webhook feature, for sending pretty messages."
+  enabled: false
   url: "YourWebhookURL"
   
-censorship: # Dont forget to change default values!
+censorship:
   enabled: false
-  own: true  # If false it relies on censorship rules from ChatGuard plugin dir.
+  own: true
+  info: "If false it relies on censorship rules from ChatGuard plugin dir."
 
 messages:
-  channel-id: "YourMessageChannelID"  # Discord channel ID where most messages will be sent.
+  channel-id: "YourMessageChannelID"
+  channel-info: "Discord channel ID where most messages will be sent."
   
-  censor: false  # Allows censorship of messages sent in channel, censorship has to be true.
-  
-  sleepmessages: false  # Allows sending of custom sleepmessages from Utilis.
-  
-  sleepmessages-format: "***%sleepmessage%***"  # Format of sleepmessages.
-  
-  # Format for chat messages sent from Discord to Server chat:
-  chat-game-message: "&f[&bDiscord&f] &7%user%: %content%"
-  # %user% = Discord username, %content% = message content
-  
-  # Format for chat messages sent from Server to Discord:
-  game-chat-message: "**%DisplayName%**: %message%"
-  # %DisplayName% = Player display name (use this if you have nicknames on server).
-  # %PlayerName% = Player name. 
-  # %message% = chat message.
-  
-  # Message format when a player joins the server:
-  join-message: "**%DisplayName%** Has Joined. [%onlineCount%/%maxCount%]"
+  censor:
+    enabled: false
+    info: "Allows censorship of messages sent in channel, censorship has to be true."
 
-  # Message format when a player leaves the server:
+  sleepmessages:
+    enabled: false
+    format: "***%sleepmessage%***"
+    info: "Allows sending of custom sleepmessages from Utilis."
+  
+  chat-game-message:
+    message: "&f[&bDiscord&f] &7%user%: %content%"
+    info: "Format for chat messages sent from Discord to Server chat."
+    placeholders: "%user% = Discord username, %content% = message content, %tag% = Discord tag"
+  
+  game-chat-message:
+    message: "**%DisplayName%**: %message%"
+    info: "Format for chat messages sent from Server chat to Discord."
+    placeholders: "%DisplayName% = Player displayname, %PlayerName% = Player name, %message% = chat message."
+
+  join-message: "**%DisplayName%** Has Joined. [%onlineCount%/%maxCount%]"
   quit-message: "**%DisplayName%** Has Left. [%onlineCount%/%maxCount%]"
 
-  # Normal embed message sent on server start:
   normal-server-start-message: "%ServerName% is on!"
-  
-  # Normal embed message sent on server shutdown:
   normal-server-shutdown-message: "%ServerName% is off!"
-  
-  # Rich embed message sent on server start:
-  rich-server-start-message:
-    author: ServerName  # Embed author name.
-    title: Server has started!  # Embed title.
-    description: |  # Embed multi-line description text.
-      Server is back online!
-    color: GREEN  # Embed color indicator.
 
-  # Rich embed message sent on server shutdown:
+  rich-server-start-message:
+    author: ServerName
+    title: Server has started!
+    description: |
+      Server is back online!
+      Supports Multiline BTW!
+    color: GREEN
+
   rich-server-shutdown-message:
     author: ServerName
     title: Server has stopped!
     description: |
       Server is taking a nap.
+      Supports Multiline BTW!
     color: RED
 
-# Enable or disable the server shell feature:
 server-shell:
   enabled: false
   channel-id: "YourShellChannelID"
-
-  # Allows Discord BOTs to interact with server shell.
-  allow-bots: false
-  
-  # List of users allowed to use the shell commands:
+  allow-bots:
+    allow-bots.value: false
+    allow-bots.info: "Allows Discord BOTs to interact with server shell."
   allowed-users:
     - discordID1
     - discordID2
+  allowed-roles:
+    - role1
+    - role2
 
-# Channel for logging sign placements:
+check:
+  enabled: true
+  allowed-users:
+    - discordID1
+    - discordID2
+  allowed-roles:
+    - role1
+    - role2
+
 sign:
   enabled: true
   channel-id: "YourSignChannelID"
-
-  # Allows censorship of messages sent in channel, censorship has to be true.
+  info: "Allows censorship of messages sent in channel, censorship has to be true."
   censor: false
 
-# Channel for player statuses:
 status:
   enabled: true
   channel-id: "YourStatusChannelID"
   header: ":green_circle: Currently Online: %onlineCount%/%maxCount%"
-  regions: true  # When true adds Region tab to status page, needs set regions using WorldGuard.
-  activity: true  # When true adds Activity tab to status page, check activity_config.yml for more info.
+  regions:
+    enabled: true
+    info: "When true adds Region tab to status page, needs set regions using WorldGuard."
+  activity:
+    enabled: true
+    info: "When true adds Activity tab to status page, check activity_config.yml for more info."
 
-################################################################################
-debug: false  # Dont enable unless needed.
-################################################################################
-
-# End of config - Made by ~jkoo :D
+debug: false
+version: "1.0"
+end: "End of config - Made by ~jkoo :D"

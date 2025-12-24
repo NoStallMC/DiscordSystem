@@ -1,22 +1,21 @@
 package main.java.org.matejko.discordsystem.listener;
 
 import org.bukkit.util.config.Configuration;
+import main.java.org.matejko.discordsystem.DiscordPlugin;
 import main.java.org.matejko.discordsystem.configuration.Config;
-import org.bukkit.plugin.java.JavaPlugin;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 public class BlacklistManager {
-    @SuppressWarnings("unused")
-    private JavaPlugin plugin;
+    private DiscordPlugin plugin;
     private Configuration blacklistConfig;
     private File blacklistFile;
 	private Config config;
 
     // Constructor: Initializes the Blacklist Manager
-    public BlacklistManager(JavaPlugin plugin, Config config) {
+    public BlacklistManager(DiscordPlugin plugin, Config config) {
     	this.config = config;
         this.plugin = plugin;
 
@@ -47,12 +46,12 @@ public class BlacklistManager {
     private void createDefaultBlacklistFile() {
         try {
             if (blacklistFile.createNewFile()) {
-                System.out.println("Created default blacklist.yml file.");
+                plugin.getLogger().info("[DiscordSystem] Created default shell_blacklist.yml file.");
                 blacklistConfig = new Configuration(blacklistFile);
                 saveDefaults();
             }
         } catch (IOException e) {
-            System.out.println("Failed to create blacklist.yml: " + e.getMessage());
+            plugin.getLogger().info("[DiscordSystem] Failed to create shell_blacklist.yml: " + e.getMessage());
         }
     }
 
@@ -78,11 +77,11 @@ public class BlacklistManager {
         if (config.debugEnabled()) {
         List<String> blacklistedCommands = getBlacklistedCommands();
         if (blacklistedCommands.isEmpty()) {
-            System.out.println("No blacklisted commands found.");
+            	plugin.getLogger().info("[DiscordSystem] No blacklisted commands found.");
         } else {
-            System.out.println("Loaded blacklisted commands:");
+            	plugin.getLogger().info("[DiscordSystem] Loaded blacklisted commands:");
             for (String command : blacklistedCommands) {
-                System.out.println(" - " + command);
+                plugin.getLogger().info(" - " + command);
             }
         }
         }

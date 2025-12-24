@@ -21,6 +21,7 @@ public class PlayerActionBuffer {
     /////////////////////////////////////////////////////////////////
     // Counters and time tracking
     /////////////////////////////////////////////////////////////////
+    public int afkSeconds = 0;
     public int hunting = 0;
     public int fishCaught = 0;
     public int netherDistance = 0;

@@ -6,18 +6,20 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-
+import main.java.org.matejko.discordsystem.DiscordPlugin;
 import main.java.org.matejko.discordsystem.configuration.Config;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 public class PlaytimeManager implements Listener {
     private final Map<String, Long> playtimes = new ConcurrentHashMap<>();
     private final Map<String, Long> sessionStartTimes = new ConcurrentHashMap<>();
 	private static Config config;
-	
-	public PlaytimeManager(Config config) {
+	private static DiscordPlugin plugin;
+
+	public PlaytimeManager(Config config, DiscordPlugin plugin) {
+		PlaytimeManager.plugin = plugin;
 	    PlaytimeManager.config = config;
 	}
 	
@@ -30,7 +32,7 @@ public class PlaytimeManager implements Listener {
             playtimes.put(name, 0L);
             sessionStartTimes.put(name, System.nanoTime());
             if (config.debugEnabled()) {
-            System.out.println("[DEBUG] " + name + " playtime and session start reset on plugin enable.");
+            	getLogger().info("[DEBUG] " + name + " playtime and session start reset on plugin enable.");
             }
         }
     }
@@ -46,7 +48,7 @@ public class PlaytimeManager implements Listener {
         playtimes.put(name, 0L);
         sessionStartTimes.put(name, System.nanoTime());
         if (config.debugEnabled()) {
-        System.out.println("[DEBUG] " + name + " joined, playtime and session start reset.");
+        	getLogger().info("[DEBUG] " + name + " joined, playtime and session start reset.");
         }
     }
 
@@ -78,5 +80,8 @@ public class PlaytimeManager implements Listener {
         long mins = (seconds / 60) % 60;
         long hrs = seconds / 3600;
         return String.format("%dh %02dmin", hrs, mins);
+    }
+    public static Logger getLogger() {
+        return plugin.getLogger();
     }
 }

@@ -6,18 +6,21 @@
     <property name="lib.dir" value="/home/jkoo/eclipse-workspace/lib"/>
     <property name="output.dir" value="/home/jkoo/beta/plugins"/>
     <property name="output.jar" value="${output.dir}/${ant.project.name}.jar"/>
+    <property name="output.zip" value="${output.dir}/${ant.project.name}.zip"/>
 
-    <!-- Clean target to remove bin directory -->
+    <!-- Discord limit: 8 MB -->
+    <property name="discord.limit.bytes" value="8388608"/>
+
+    <!-- Clean target -->
     <target name="clean">
         <delete dir="${bin.dir}" />
     </target>
 
-    <!-- Compile target to compile Java files -->
+    <!-- Compile -->
     <target name="compile">
         <mkdir dir="${bin.dir}"/>
         <javac srcdir="${src.dir}" destdir="${bin.dir}" includeantruntime="false">
             <classpath>
-                <!-- Include dependencies from the lib directory -->
                 <fileset dir="${lib.dir}">
                     <include name="*.jar"/>
                 </fileset>
@@ -25,22 +28,44 @@
         </javac>
     </target>
 
-    <!-- Create JAR file with dependencies and resources -->
-    <target name="makejar" depends="compile" description="Create a jar for the project">
+    <!-- Build jar -->
+    <target name="makejar" depends="compile">
         <mkdir dir="${output.dir}"/>
+
         <jar destfile="${output.jar}">
             <fileset dir="${bin.dir}"/>
             <fileset file="plugin.yml"/>
             <fileset file="config.yml"/>
-            <fileset file="blacklist.yml"/>
             <fileset file="activity_config.yml"/>
 
-            <!-- Include external dependencies into the JAR -->
             <zipgroupfileset dir="${lib.dir}">
                 <include name="discord-webhooks-0.1.6.jar"/>
                 <include name="JDA-5.0.1.jar"/>
-            	<include name="json.jar"/>
+                <include name="json.jar"/>
+                <include name="JNBT_1.5.jar"/>
+                <include name="slf4j-nop-2.0.17.jar"/>
             </zipgroupfileset>
         </jar>
+
+        <!-- Get JAR size -->
+        <length file="${output.jar}" property="jar.size.bytes"/>
+        <echo message="JAR size: ${jar.size.bytes} bytes"/>
+
+        <!-- Zip with maximum compression -->
+        <zip destfile="${output.zip}">
+            <fileset file="${output.jar}"/>
+        </zip>
+
+        <!-- Get ZIP size -->
+        <length file="${output.zip}" property="zip.size.bytes"/>
+        <echo message="Zipped size: ${zip.size.bytes} bytes"/>
+    	
+    	<!-- Discord size check via shell -->
+    	<exec executable="/bin/sh" failonerror="true">
+    	    <arg value="-c"/>
+    	    <arg value="ZIP_SIZE=$(wc -c &lt; '${output.zip}'); LIMIT=${discord.limit.bytes}; echo Will\ fit\ Discord:\ $([ $ZIP_SIZE -le $LIMIT ] &amp;&amp; echo true || echo false); [ $ZIP_SIZE -le $LIMIT ]"/>
+    	</exec>
+
     </target>
+
 </project>

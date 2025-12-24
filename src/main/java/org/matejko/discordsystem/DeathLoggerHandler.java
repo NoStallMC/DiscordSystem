@@ -9,13 +9,12 @@ import java.util.logging.LogRecord;
 public final class DeathLoggerHandler {
     @SuppressWarnings("unused")
     private static Config config;
+    @SuppressWarnings("unused")
+	private static DiscordPlugin plugin;
 
-    public static void register(Config config) {
+    public static void register(Config config, DiscordPlugin plugin) {
+    	DeathLoggerHandler.plugin = plugin;
         DeathLoggerHandler.config = config;
-        if (config.debugEnabled()) {
-            System.out.println("[DeathLogger] Registering custom logger handler...");
-        }
-
         Handler handler = new Handler() {
             @Override
             public void publish(LogRecord record) {
@@ -25,19 +24,16 @@ public final class DeathLoggerHandler {
                 if (!msg.contains("[HeroicDeath]")) return;
                 if (msg.toLowerCase().contains("enabled")) return;
                 if (msg.toLowerCase().contains("disabled")) return;
-
                 String cleaned = msg.replace("[HeroicDeath] ", "").trim();
                 String[] parts = cleaned.split(" ", 2);
                 if (parts.length < 2) return;
-
                 String username = sanitizeArgs(parts[0]);
                 String content = sanitizeArgs(parts[1]);
                 String boldUsername = "**" + username + "**";
-
                 try {
                     if (config.webhookEnabled()) {
                         if (config.debugEnabled()) {
-                            System.out.println("[DeathLogger] Sending webhook for " + username);
+                        	plugin.getLogger().info("[DeathLogger] Sending webhook for " + username);
                         }
                         WebhookMessageBuilder builder = new WebhookMessageBuilder()
                                 .setAvatarUrl("http://minotar.net/helm/" + username + "/100.png")
@@ -46,7 +42,7 @@ public final class DeathLoggerHandler {
                         GetterHandler.webhookClient().send(builder.build());
                     } else {
                         if (config.debugEnabled()) {
-                            System.out.println("[DeathLogger] Webhook disabled, sending fallback message for " + username);
+                        	plugin.getLogger().info("[DeathLogger] Webhook disabled, sending fallback message for " + username);
                         }
                         GetterHandler.jda()
                                 .getTextChannelById(config.messageChannelId())
@@ -55,22 +51,18 @@ public final class DeathLoggerHandler {
                     }
                 } catch (Exception e) {
                     if (config.debugEnabled()) {
-                        System.out.println("[DeathLogger] Error sending death message: " + e.getMessage());
+                    	plugin.getLogger().warning("[DeathLogger] Error sending death message: " + e.getMessage());
                     }
                 }
             }
-
             @Override
             public void flush() {}
-
             @Override
             public void close() throws SecurityException {}
         };
 
         Bukkit.getLogger().addHandler(handler);
     }
-
-    // Sanitize display name: strip color/formatting codes
     private static String sanitizeArgs(String displayName) {
         if (displayName == null) return "";
         return displayName.replaceAll("§[0-9a-fA-Fk-orK-OR]", "").trim();

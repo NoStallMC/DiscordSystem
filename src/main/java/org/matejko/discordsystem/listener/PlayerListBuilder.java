@@ -5,12 +5,13 @@ import org.bukkit.entity.Player;
 import main.java.org.matejko.discordsystem.utils.ActivityTracker;
 import main.java.org.matejko.discordsystem.utils.EmojiSetGetter;
 import main.java.org.matejko.discordsystem.utils.RegionFinder;
+import main.java.org.matejko.discordsystem.DiscordPlugin;
+import main.java.org.matejko.discordsystem.configuration.ActivityTrackerConfig;
 import main.java.org.matejko.discordsystem.configuration.Config;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PlayerListBuilder {
-
     ////////////////////////////////////////////////////////////////////////////////
     // Column Widths for message
     ////////////////////////////////////////////////////////////////////////////////
@@ -18,10 +19,8 @@ public class PlayerListBuilder {
     private final int timeColumnWidthFull = 20;
     private final int activityColumnWidthFull = 20;
     private final int regionColumnWidthFull = 20;
-
     private final int nameColumnWidthThree = 25;
     private final int timeColumnWidthThree = 25;
-
     private final int nameColumnWidthTwo = 30;
     private final int timeColumnWidthTwo = 30;
 
@@ -31,14 +30,16 @@ public class PlayerListBuilder {
     private final PlaytimeManager playtimeManager;
     private final RegionFinder regionFinder;
     private final Config config;
-
+    @SuppressWarnings("unused")
+	private static DiscordPlugin plugin;
     private final boolean activityFeatureEnabled;
     private final boolean regionFeatureEnabled;
 
     ////////////////////////////////////////////////////////////////////////////////
     // Constructor to initialize PlaytimeManager, RegionFinder and Config
     ////////////////////////////////////////////////////////////////////////////////
-    public PlayerListBuilder(PlaytimeManager playtimeManager, RegionFinder regionFinder, Config config) {
+    public PlayerListBuilder(PlaytimeManager playtimeManager, RegionFinder regionFinder, Config config, DiscordPlugin plugin) {
+        PlayerListBuilder.plugin = plugin;
         this.playtimeManager = playtimeManager;
         this.regionFinder = regionFinder;
         this.config = config;
@@ -48,9 +49,9 @@ public class PlayerListBuilder {
             this.regionFeatureEnabled = true;
         } else {
             if (config.statusRegionEnabled()) {
-                System.out.println("[DiscordPlugin] Region feature was enabled in config but WorldGuard plugin is missing – disabling.");
-                System.out.println("[DiscordPlugin] Region feature was enabled in config but WorldGuard plugin is missing – disabling.");
-                System.out.println("[DiscordPlugin] Region feature was enabled in config but WorldGuard plugin is missing – disabling.");
+                plugin.getLogger().info("[DiscordPlugin] Region feature was enabled in config but WorldGuard plugin is missing – disabling.");
+                plugin.getLogger().info("[DiscordPlugin] Region feature was enabled in config but WorldGuard plugin is missing – disabling.");
+                plugin.getLogger().info("[DiscordPlugin] Region feature was enabled in config but WorldGuard plugin is missing – disabling.");
             }
             this.regionFeatureEnabled = false;
         }
@@ -61,21 +62,17 @@ public class PlayerListBuilder {
     ////////////////////////////////////////////////////////////////////////////////
     public String buildPage(List<Player> players, int totalOnline, int max) {
         StringBuilder sb = new StringBuilder("```ansi\n");
-        String headerRaw = config.statusHeader()
+        String headerWithEmojis = EmojiSetGetter.translateEmojis(config.statusHeader()
                 .replace("%onlineCount%", String.valueOf(totalOnline))
-                .replace("%maxCount%", String.valueOf(max));
-
-        String headerWithEmojis = EmojiSetGetter.translateEmojis(headerRaw);
+                .replace("%maxCount%", String.valueOf(max)));
         sb.append("\u001B[1;36m").append(headerWithEmojis).append("\u001B[0m\n\n");
-
         String headerFormat = buildHeaderFormat();
         sb.append(String.format(headerFormat, buildHeaders()));
-
         for (Player player : players) {
             String name = ChatColor.stripColor(player.getDisplayName());
             String time = getSessionTime(player);
-            String activity = activityFeatureEnabled ? getFormattedActivity(player) : "";
-            String region = regionFeatureEnabled ? getFormattedRegion(player) : "";
+            String activity = activityFeatureEnabled ? EmojiSetGetter.translateEmojis(getFormattedActivity(player)) : "";
+            String region = regionFeatureEnabled ? EmojiSetGetter.translateEmojis(getFormattedRegion(player)) : "";
             String playerFormat = buildPlayerFormat();
             sb.append(String.format(playerFormat, buildRow(name, time, activity, region)));
         }
@@ -187,19 +184,21 @@ public class PlayerListBuilder {
         if (activity == null) return "";
         switch (activity) {
             case BUILDING:
-                return "Building";
+                return ActivityTrackerConfig.getActivityName("building", "Building");
             case GATHERING:
-                return "Gathering";
+                return ActivityTrackerConfig.getActivityName("gathering", "Gathering");
             case HUNTING:
-                return "Hunting";
+                return ActivityTrackerConfig.getActivityName("hunting", "Hunting");
             case MINING:
-                return "Mining";
+                return ActivityTrackerConfig.getActivityName("mining", "Mining");
             case FISHING:
-                return "Fishing";
+                return ActivityTrackerConfig.getActivityName("fishing", "Fishing");
             case FARMING:
-                return "Farming";
+                return ActivityTrackerConfig.getActivityName("farming", "Farming");
             case EXPLORING_NETHER:
-                return "Exploring Nether";
+                return ActivityTrackerConfig.getActivityName("nether_distance", "Exploring Nether");
+            case AFK:
+                return ActivityTrackerConfig.getActivityName("afk", "AFK");
             default:
                 return activity.name();
         }

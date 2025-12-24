@@ -3,10 +3,11 @@ package main.java.org.matejko.discordsystem;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import main.java.org.matejko.discordsystem.configuration.CensorshipRulesManager;
 import main.java.org.matejko.discordsystem.configuration.Config;
-import main.java.org.matejko.discordsystem.utils.EmojiSetGetter;
+import main.java.org.matejko.discordsystem.listener.MessageReceiveListener;
 import main.java.org.matejko.utilis.Utilis;
 import main.java.org.matejko.utilis.Managers.SleepingManager;
 import main.java.org.matejko.utilis.UtilisCore.UtilisGetters;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import org.bukkit.Bukkit;
@@ -21,45 +22,41 @@ import org.bukkit.plugin.Plugin;
 public class PluginEventHandler implements Listener {
     private final Config config;
     private DiscordPlugin plugin;
-
     public PluginEventHandler(Config config, DiscordPlugin plugin) {
         this.config = config;
         this.plugin = plugin;
     }
-
-    // Setting default presence (0 players online)
+    public void onDiscordStart(JDA jda) {
+        jda.addEventListener(new MessageReceiveListener(config, plugin));
+        initPresence();
+        plugin.startJdaDependentTasks();
+    }
     public void initPresence() {
+    	if (GetterHandler.jda() == null) return;
         int maxPlayers = Bukkit.getMaxPlayers();
         String activity = config.bact()
         .replace("%onlineCount%", String.valueOf("0"))
         .replace("%ServerName%", config.serverName())
         .replace("%maxCount%", String.valueOf(maxPlayers));
-
         GetterHandler.jda().getPresence().setActivity(
             Activity.playing(activity)
         );
     }
-
     public boolean webhookEnabled() {
         return config.webhookEnabled();
     }
-
-    // Helper method to send message via JDA bot (not webhook)
     private void sendBotMessage(String message) {
+    	if (GetterHandler.jda() == null) return;
         String channelId = config.messageChannelId();
         if (channelId == null || channelId.isEmpty()) return;
         TextChannel channel = GetterHandler.jda().getTextChannelById(channelId);
         if (channel == null) return;
         channel.sendMessage(message).queue();
     }
-
-    // Sanitize display name: strip color/formatting codes
     private String sanitizeDisplayName(String displayName) {
         if (displayName == null) return "";
         return displayName.replaceAll("§[0-9a-fA-Fklmnor]", "").trim();
     }
-
-    // Sanitize message content for Discord
     private String sanitizeMessage(String message) {
         if (message == null) return "";
         message = message.replaceAll("§[0-9a-fA-Fklmnor]", "");
@@ -68,29 +65,25 @@ public class PluginEventHandler implements Listener {
         message = message.replaceAll("@", "(at)");
         return message;
     }
-
     @EventHandler
     public void onPlayerJoin(final PlayerJoinEvent event) {
         Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
             @Override
             public void run() {
+            	if (GetterHandler.jda() == null) return;
                 int online = Bukkit.getOnlinePlayers().length;
                 int maxPlayers = Bukkit.getMaxPlayers();
                 String playerName = event.getPlayer().getName();
                 String displayName = sanitizeDisplayName(event.getPlayer().getDisplayName());
-                String messageraw = config.joinMessage()
+                String message = config.joinMessage()
                     .replace("%PlayerName%", playerName)
                     .replace("%DisplayName%", displayName)
                     .replace("%onlineCount%", String.valueOf(online))
                     .replace("%maxCount%", String.valueOf(maxPlayers));
-                String message = EmojiSetGetter.translateEmojis(messageraw);
-
-                String activityraw = config.bact()
+                String activity = config.bact()
                     .replace("%onlineCount%", String.valueOf(online))
                     .replace("%ServerName%", config.serverName())
                     .replace("%maxCount%", String.valueOf(maxPlayers));
-                String activity = EmojiSetGetter.translateEmojis(activityraw);
-
                 GetterHandler.jda().getPresence().setActivity(
                     Activity.playing(activity)
                 );
@@ -106,26 +99,22 @@ public class PluginEventHandler implements Listener {
             }
         }, 1L);
     }
-
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
+    	if (GetterHandler.jda() == null) return;
         int online = Bukkit.getOnlinePlayers().length - 1;
         int maxPlayers = Bukkit.getMaxPlayers();
         String playerName = event.getPlayer().getName();
         String displayName = sanitizeDisplayName(event.getPlayer().getDisplayName());
-        String messageraw = config.quitMessage()
+        String message = config.quitMessage()
             .replace("%PlayerName%", playerName)
             .replace("%DisplayName%", displayName)
             .replace("%onlineCount%", String.valueOf(online))
             .replace("%maxCount%", String.valueOf(maxPlayers));
-        String message = EmojiSetGetter.translateEmojis(messageraw);
-
-        String activityraw = config.bact()
+        String activity = config.bact()
         	.replace("%onlineCount%", String.valueOf(online))
         	.replace("%ServerName%", config.serverName())
         	.replace("%maxCount%", String.valueOf(maxPlayers));
-        String activity = EmojiSetGetter.translateEmojis(activityraw);
-
         GetterHandler.jda().getPresence().setActivity(
             Activity.playing(activity)
         );
@@ -139,29 +128,28 @@ public class PluginEventHandler implements Listener {
             sendBotMessage(message);
         }
     }
-
     @EventHandler
     public void onPlayerChat(PlayerChatEvent event) {
+    	if (GetterHandler.jda() == null) return;
         if (event.isCancelled()) return;
         String playerName = event.getPlayer().getName();
         String displayName = sanitizeDisplayName(event.getPlayer().getDisplayName());
         String originalMessage = event.getMessage();
         String sanitizedMessage = sanitizeMessage(originalMessage);
         CensorshipRulesManager rules = DiscordPlugin.instance().getCensorshipRules();
-        String[] words = sanitizedMessage.toLowerCase().split("\\s+");
+        String[] words = sanitizedMessage.split("\\s+");
         for (int i = 0; i < words.length; i++) {
             String word = words[i];
-            if (rules.getBlacklist().contains(word) && !rules.getWhitelist().contains(word)) {
+            String check = word.toLowerCase();
+            if (rules.getBlacklist().contains(check) && !rules.getWhitelist().contains(check)) {
                 words[i] = repeatHashtag(word.length());
             }
         }
-        String censoredMessageRaw = String.join(" ", words);
-        String censoredMessage = EmojiSetGetter.translateEmojis(censoredMessageRaw);
-        String contentRaw = config.chatMessage()
+        String censoredMessage = String.join(" ", words);
+        String content = config.chatMessage()
             .replace("%PlayerName%", playerName)
             .replace("%DisplayName%", displayName)
             .replace("%message%", censoredMessage);
-        String content = EmojiSetGetter.translateEmojis(contentRaw);
         if (webhookEnabled()) {
             WebhookMessageBuilder builder = new WebhookMessageBuilder()
                 .setAvatarUrl("http://minotar.net/helm/" + playerName + "/100.png")
@@ -172,7 +160,6 @@ public class PluginEventHandler implements Listener {
             sendBotMessage(content);
         }
     }
-
     private String repeatHashtag(int count) {
         StringBuilder builder = new StringBuilder(count);
         for (int i = 0; i < count; i++) {
@@ -180,7 +167,6 @@ public class PluginEventHandler implements Listener {
         }
         return builder.toString();
     }
-
     public void registerSleepListener() {
     	if (!config.smEnabled()) {
     		return;
@@ -206,28 +192,26 @@ public class PluginEventHandler implements Listener {
         sleepingManager.addSleepMessageListener(new SleepingManager.SleepMessageListener() {
             @Override
             public void onSleepMessage(Player sleeper, String message) {
-                // Strip Minecraft color codes
+            	if (GetterHandler.jda() == null) return;
             	String cleanMsg = message.replaceAll("§[0-9a-fA-Fklmnor]", "");
-            	// Sanitize for Discord
             	cleanMsg = cleanMsg
             	    .replaceAll("@everyone", "everyone")
             	    .replaceAll("@here", "here")
             	    .replaceAll("@", "(at)")
             	    .replace("*", "\\*");
             	cleanMsg = config.smFormat().replace("%sleepmessage%", cleanMsg);
-                String cleanMsgFinal = EmojiSetGetter.translateEmojis(cleanMsg);
                 if (webhookEnabled()) {
                     WebhookMessageBuilder builder = new WebhookMessageBuilder()
                         .setAvatarUrl("http://minotar.net/helm/" + sleeper.getName() + "/100.png")
                     	.setUsername(sanitizeDisplayName(sleeper.getDisplayName()))
-                        .setContent(cleanMsgFinal);
+                        .setContent(cleanMsg);
                     GetterHandler.webhookClient().send(builder.build());
                 } else {
                     String channelId = config.messageChannelId();
                     if (channelId != null && !channelId.isEmpty()) {
                         TextChannel channel = GetterHandler.jda().getTextChannelById(channelId);
                         if (channel != null) {
-                            channel.sendMessage(cleanMsgFinal).queue();
+                            channel.sendMessage(cleanMsg).queue();
                         } else {
                             plugin.getLogger().warning("[DiscordPlugin] Discord channel not found: " + channelId);
                         }

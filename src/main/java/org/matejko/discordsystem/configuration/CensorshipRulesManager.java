@@ -1,6 +1,7 @@
 package main.java.org.matejko.discordsystem.configuration;
 
 import org.bukkit.util.config.Configuration;
+import main.java.org.matejko.discordsystem.DiscordPlugin;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -17,10 +18,12 @@ public class CensorshipRulesManager {
     private Set<String> blacklist = new HashSet<String>();
     private Set<String> whitelist = new HashSet<String>();
     private boolean rulesLoaded = false;
+    private static DiscordPlugin plugin;
 	private Config config;
 
-    public CensorshipRulesManager(File dataFolder, Config config) {
+    public CensorshipRulesManager(File dataFolder, Config config, DiscordPlugin plugin) {
     	this.config = config;
+    	CensorshipRulesManager.plugin = plugin;
         this.dataFolder = dataFolder;
         loadOrCreateOwnRulesFile();
         ensureRulesLoaded();
@@ -138,7 +141,7 @@ public class CensorshipRulesManager {
         } else {
             File chatGuardConfigFile = new File("plugins/ChatGuard/config/config.yml");
             if (!chatGuardConfigFile.exists()) {
-                System.out.println("[CensorshipRules] ChatGuard config file not found.");
+                plugin.getLogger().info("[CensorshipRules] ChatGuard config file not found.");
                 rulesLoaded = true;
                 return;
             }
@@ -166,13 +169,13 @@ public class CensorshipRulesManager {
         }
 
         if (config.debugEnabled()) {
-            System.out.println("[DEBUG] [CensorshipRules] Loaded blacklist:");
+            plugin.getLogger().info("[DEBUG] [CensorshipRules] Loaded blacklist:");
             for (String word : blacklist) {
-                System.out.println("  - " + word);
+                plugin.getLogger().info("  - " + word);
             }
-            System.out.println("[DEBUG] [CensorshipRules] Loaded whitelist:");
+            plugin.getLogger().info("[DEBUG] [CensorshipRules] Loaded whitelist:");
             for (String word : whitelist) {
-                System.out.println("  - " + word);
+                plugin.getLogger().info("  - " + word);
             }
         }
 
@@ -181,7 +184,7 @@ public class CensorshipRulesManager {
     
     public void saveRules() {
         if (ownRulesConfig == null) {
-            System.out.println("[CensorshipRules] Cannot save: config is null.");
+            plugin.getLogger().info("[CensorshipRules] Cannot save: config is null.");
             return;
         }
 
@@ -195,7 +198,7 @@ public class CensorshipRulesManager {
             ownRulesConfig.save();
             reloadRules();
         } catch (Exception e) {
-            System.out.println("[CensorshipRules] Failed to save rules:");
+            plugin.getLogger().info("[CensorshipRules] Failed to save rules:");
             e.printStackTrace();
         }
     }

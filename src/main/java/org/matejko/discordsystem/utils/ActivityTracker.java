@@ -1,7 +1,7 @@
 package main.java.org.matejko.discordsystem.utils;
 
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
+import main.java.org.matejko.discordsystem.DiscordPlugin;
 import main.java.org.matejko.discordsystem.configuration.ActivityTrackerConfig;
 import main.java.org.matejko.discordsystem.configuration.Config;
 import org.bukkit.Server;
@@ -13,7 +13,7 @@ public class ActivityTracker {
     // Enum representing different types of player activities
     ////////////////////////////////////////////////////////////////////////////////
     public enum PlayerActivity {
-        BUILDING, GATHERING, HUNTING, MINING, FISHING, FARMING, EXPLORING_NETHER
+    	AFK, BUILDING, GATHERING, HUNTING, MINING, FISHING, FARMING, EXPLORING_NETHER
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -22,13 +22,15 @@ public class ActivityTracker {
     static final Map<UUID, Double> activityStrength = new HashMap<>();
     static final Map<UUID, PlayerActivity> playerActivities = new HashMap<>();
     static final Map<UUID, Long> activitySetTime = new HashMap<>();
-    private static Plugin plugin;
+    private static final Map<UUID, PlayerActivity> pausedActivity = new HashMap<>();
+    private static final Map<UUID, Double> pausedStrength = new HashMap<>();
+    private static DiscordPlugin plugin;
 	private static Config config;
 
     ////////////////////////////////////////////////////////////////////////////////
     // Initializes the tracker and starts the decay task
     ////////////////////////////////////////////////////////////////////////////////
-    public static void init(Plugin pl, Config config) {
+    public static void init(DiscordPlugin pl, Config config) {
 		ActivityTracker.config = config;
         plugin = pl;
         Server server = plugin.getServer();
@@ -58,14 +60,14 @@ public class ActivityTracker {
                         playerActivities.remove(uuid);
                         activitySetTime.remove(uuid);
                         if (config.debugEnabled()) {
-                        System.out.println("[ActivityTracker] Cleared expired activity for: " + uuid);
+                        	plugin.getLogger().info("[ActivityTracker] Cleared expired activity for: " + uuid);
                         }
                     } else {
                         activityStrength.put(uuid, newStrength);
                         if (activity != null && config.debugEnabled()) {
-                            System.out.println("[DEBUG] " + uuid + " current activity: " + activity + " at strength " + String.format("%.2f", newStrength) + "%");
-                            System.out.println("[ActivityTracker] Decay time: " + decayTimeSeconds + "s -> " + String.format("%.2f", decayPerSecond) + "% per second");
-                            System.out.println("[ActivityTracker] Decay interval: " + decaySpeedTicks + " ticks (" + String.format("%.2f", decayIntervalSeconds) + "s) -> " + String.format("%.2f", decayPerInterval) + "% per check");
+                            plugin.getLogger().info("[DEBUG] " + uuid + " current activity: " + activity + " at strength " + String.format("%.2f", newStrength) + "%");
+                            plugin.getLogger().info("[ActivityTracker] Decay time: " + decayTimeSeconds + "s -> " + String.format("%.2f", decayPerSecond) + "% per second");
+                            plugin.getLogger().info("[ActivityTracker] Decay interval: " + decaySpeedTicks + " ticks (" + String.format("%.2f", decayIntervalSeconds) + "s) -> " + String.format("%.2f", decayPerInterval) + "% per check");
                         }
                     }
                 }
@@ -80,18 +82,27 @@ public class ActivityTracker {
         if (strengthDelta < 10) return;
         UUID uuid = player.getUniqueId();
         PlayerActivity current = playerActivities.get(uuid);
+        if (current == PlayerActivity.AFK && activity != PlayerActivity.AFK) {
+            pausedActivity.put(uuid, activity);
+            pausedStrength.put(uuid, (double) strengthDelta);
+            return;
+        }
+        if (activity == PlayerActivity.AFK && current != PlayerActivity.AFK && current != null) {
+            pausedActivity.put(uuid, current);
+            pausedStrength.put(uuid, activityStrength.getOrDefault(uuid, 0.0));
+        }
         if (current != null && current == activity) {
             double currentStrength = activityStrength.getOrDefault(uuid, 0.0);
             double newStrength = Math.min(100.0, currentStrength + strengthDelta);
             activityStrength.put(uuid, newStrength);
             if (config.debugEnabled()) {
-            System.out.println("[DEBUG] Updated activity strength for " + player.getName() + ": " + String.format("%.2f", currentStrength) + "% -> " + String.format("%.2f", newStrength) + "%");
+            	plugin.getLogger().info("[DEBUG] Updated activity strength for " + player.getName() + ": " + String.format("%.2f", currentStrength) + "% -> " + String.format("%.2f", newStrength) + "%");
             }
         } else {
             playerActivities.put(uuid, activity);
             activityStrength.put(uuid, Math.min(100.0, strengthDelta));
             if (config.debugEnabled()) {
-            System.out.println("[ActivityTracker] Set activity for " + player.getName() + ": " + activity + " at strength " + strengthDelta + "%");
+            	plugin.getLogger().info("[ActivityTracker] Set activity for " + player.getName() + ": " + activity + " at strength " + strengthDelta + "%");
             }
         }
         activitySetTime.put(uuid, System.currentTimeMillis());
@@ -119,8 +130,29 @@ public class ActivityTracker {
         playerActivities.remove(uuid);
         activitySetTime.remove(uuid);
         activityStrength.remove(uuid);
+        pausedActivity.remove(uuid);
+        pausedStrength.remove(uuid);
         if (config.debugEnabled()) {
-        System.out.println("[ActivityTracker] Manually cleared activity for " + player.getName());
+        	plugin.getLogger().info("[ActivityTracker] Manually cleared activity for " + player.getName());
+        }
+    }
+    
+    ////////////////////////////////////////////////////////////////////////////////
+    // Resumes Previous Activity of player
+    ////////////////////////////////////////////////////////////////////////////////
+    public static void resumePreviousActivity(Player player) {
+        UUID uuid = player.getUniqueId();
+        if (pausedActivity.containsKey(uuid) && pausedStrength.containsKey(uuid)) {
+            playerActivities.put(uuid, pausedActivity.get(uuid));
+            activityStrength.put(uuid, pausedStrength.get(uuid));
+            activitySetTime.put(uuid, System.currentTimeMillis());
+            if (config.debugEnabled()) {
+            	plugin.getLogger().info("[ActivityTracker] Resumed previous activity for " + player.getName() + ": " + pausedActivity.get(uuid));
+            }
+            pausedActivity.remove(uuid);
+            pausedStrength.remove(uuid);
+        } else {
+            clearActivity(player);
         }
     }
 }

@@ -15,34 +15,39 @@ import java.util.List;
 import java.util.Set;
 
 public final class MessageReceiveListener extends ListenerAdapter {
+	private static DiscordPlugin plugin;
     private final Config config;
 
-    public MessageReceiveListener(Config config) {
+    public MessageReceiveListener(Config config, DiscordPlugin plugin) {
+    	MessageReceiveListener.plugin = plugin;
         this.config = config;
     }
-
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         if (event.getAuthor().isBot() && !config.serverShellAllowBots()) return;
         if (event.isWebhookMessage()) return;
-
         String userId = event.getAuthor().getId();
         if (userId.equals(config.botid())) return;
-
         String channelId = event.getChannel().getId();
         String rawContent = event.getMessage().getContentRaw();
         String censoredContent = applyCensorship(rawContent);
         String sanitizedContent = sanitize(censoredContent);
-
         if (channelId.equals(config.shellChannelId())) {
             if (!config.serverShellEnabled()) {
                 event.getChannel().sendMessage(":no_entry_sign: Server-shell is disabled in config!").queue();
                 return;
             }
-            List<?> rawList = config.shellAllowedUsers();
+            List<?> rawUserList = config.shellAllowedUsers();
             List<String> allowedUsers = new ArrayList<>();
-            for (Object obj : rawList) allowedUsers.add(obj.toString());
-            if (!allowedUsers.contains(userId)) {
+            for (Object obj : rawUserList) allowedUsers.add(obj.toString());
+            boolean isUserAllowed = allowedUsers.contains(userId);
+            boolean isRoleAllowed = false;
+            if (event.getMember() != null) {
+                List<String> allowedRoles = config.shellAllowedRoles();
+                isRoleAllowed = event.getMember().getRoles().stream()
+                        .anyMatch(role -> allowedRoles.contains(role.getName()) || allowedRoles.contains(role.getId()));
+            }
+            if (!isUserAllowed && !isRoleAllowed) {
                 event.getChannel().sendMessage(":no_entry_sign: You are not authorized to use the server-shell.").queue();
                 return;
             }
@@ -52,7 +57,7 @@ public final class MessageReceiveListener extends ListenerAdapter {
             }
             Bukkit.getLogger().info("[DiscordShell] executing command: " + sanitizedContent);
             Bukkit.getScheduler().scheduleSyncDelayedTask(DiscordPlugin.instance(), () -> {
-                ServerShellSender sender = new ServerShellSender();
+                ServerShellSender sender = new ServerShellSender(plugin);
                 boolean result = Bukkit.dispatchCommand(sender, sanitizedContent);
                 List<String> output = sender.getOutput();
                 if (!result || output.isEmpty()) {
@@ -69,24 +74,21 @@ public final class MessageReceiveListener extends ListenerAdapter {
             });
             return;
         }
-
-        // Relay message from Discord to Minecraft
         if (channelId.equals(config.messageChannelId())) {
             String authorName = event.getMember() != null
                     ? event.getMember().getEffectiveName()
                     : event.getAuthor().getName();
-
-            // Format for Minecraft server
+            String tag = event.getMember() != null
+                    ? event.getMember().getAsMention()
+                    : event.getAuthor().getAsMention();
             String mcMessage = config.messageFormat()
                     .replace("%user%", authorName)
+                    .replace("%tag%", tag)
                     .replace("%content%", censoredContent);
             String coloredMessage = translateColorCodes(mcMessage);
-
             for (Player player : Bukkit.getOnlinePlayers()) {
                 player.sendMessage(coloredMessage);
             }
-
-            // Webhook enabled: delete original and resend via webhook
             if (config.webhookEnabled()) {
                 event.getMessage().delete().queue();
                 WebhookMessageBuilder builder = new WebhookMessageBuilder()
