@@ -62,8 +62,8 @@ server-shell:
   enabled: false
   channel-id: "YourShellChannelID"
   allow-bots:
-    allow-bots.value: false
-    allow-bots.info: "Allows Discord BOTs to interact with server shell."
+    value: false
+    info: "Allows Discord BOTs to interact with server shell."
   allowed-users:
     - discordID1
     - discordID2
@@ -99,4 +99,3 @@ status:
 
 debug: false
 version: "1.0"
-end: "End of config - Made by ~jkoo :D"

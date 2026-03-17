@@ -4,12 +4,11 @@ import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import main.java.org.matejko.discordsystem.configuration.CensorshipRulesManager;
 import main.java.org.matejko.discordsystem.configuration.Config;
 import main.java.org.matejko.discordsystem.listener.MessageReceiveListener;
-import main.java.org.matejko.utilis.Utilis;
-import main.java.org.matejko.utilis.Managers.SleepingManager;
-import main.java.org.matejko.utilis.UtilisCore.UtilisGetters;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -168,61 +167,66 @@ public class PluginEventHandler implements Listener {
         return builder.toString();
     }
     public void registerSleepListener() {
-    	if (!config.smEnabled()) {
-    		return;
-    	}
-        Plugin rawPlugin = Bukkit.getPluginManager().getPlugin("Utilis");
-        if (!(rawPlugin instanceof Utilis)) {
-            plugin.getLogger().warning("[DiscordPlugin] Utilis plugin not found or not valid! Sleep messages wont work!");
-            plugin.getLogger().warning("[DiscordPlugin] Utilis plugin not found or not valid! Sleep messages wont work!");
-            plugin.getLogger().warning("[DiscordPlugin] Utilis plugin not found or not valid! Sleep messages wont work!");
-            return;
+        try {
+            Plugin raw = Bukkit.getPluginManager().getPlugin("Utilis");
+            if (raw == null) {
+                plugin.getLogger().info("[DiscordPlugin] Utilis not present");
+                return;
+            }
+            Method getSleepingManager = raw.getClass().getMethod("getSleepingManager");
+            Object sleepingManager = getSleepingManager.invoke(raw);
+            if (sleepingManager == null) {
+                plugin.getLogger().info("[DiscordPlugin] SleepingManager is null (not enabled yet)");
+                return;
+            }
+            Class<?> listenerInterface = Class.forName(
+                "main.java.org.matejko.utilis.Managers.SleepingManager$SleepMessageListener"
+            );
+            Object listener = Proxy.newProxyInstance(
+                listenerInterface.getClassLoader(),
+                new Class<?>[]{listenerInterface},
+                (proxy, method, args) -> {
+                    if (!method.getName().equals("onSleepMessage")) return null;
+                    Player sleeper = (Player) args[0];
+                    String message = (String) args[1];
+                    handleSleepMessage(sleeper, message);
+                    return null;
+                }
+            );
+            Method addListener = sleepingManager.getClass()
+                .getMethod("addSleepMessageListener", listenerInterface);
+            addListener.invoke(sleepingManager, listener);
+            plugin.getLogger().info("[DiscordPlugin] Sleep messages hook registered successfully");
+        } catch (ClassNotFoundException e) {
+            plugin.getLogger().info("[DiscordPlugin] Utilis present but sleep API missing");
+        } catch (Throwable t) {
+            plugin.getLogger().severe("[DiscordPlugin] Failed to hook sleep messages:");
+            t.printStackTrace();
         }
-        Utilis utilis = (Utilis) rawPlugin;
-        UtilisGetters getters = utilis.getUtilisGetters();
-        if (getters == null) {
-            plugin.getLogger().warning("[DiscordPlugin] UtilisGetters is null! Cannot hook sleep messages.");
-            return;
-        }
-        SleepingManager sleepingManager = getters.getSleepingManager();
-        if (sleepingManager == null) {
-            plugin.getLogger().warning("[DiscordPlugin] SleepingManager instance is null! Cannot hook sleep messages.");
-            return;
-        }
-        sleepingManager.addSleepMessageListener(new SleepingManager.SleepMessageListener() {
-            @Override
-            public void onSleepMessage(Player sleeper, String message) {
-            	if (GetterHandler.jda() == null) return;
-            	String cleanMsg = message.replaceAll("§[0-9a-fA-Fklmnor]", "");
-            	cleanMsg = cleanMsg
-            	    .replaceAll("@everyone", "everyone")
-            	    .replaceAll("@here", "here")
-            	    .replaceAll("@", "(at)")
-            	    .replace("*", "\\*");
-            	cleanMsg = config.smFormat().replace("%sleepmessage%", cleanMsg);
-                if (webhookEnabled()) {
-                    WebhookMessageBuilder builder = new WebhookMessageBuilder()
-                        .setAvatarUrl("http://minotar.net/helm/" + sleeper.getName() + "/100.png")
-                    	.setUsername(sanitizeDisplayName(sleeper.getDisplayName()))
-                        .setContent(cleanMsg);
-                    GetterHandler.webhookClient().send(builder.build());
-                } else {
-                    String channelId = config.messageChannelId();
-                    if (channelId != null && !channelId.isEmpty()) {
-                        TextChannel channel = GetterHandler.jda().getTextChannelById(channelId);
-                        if (channel != null) {
-                            channel.sendMessage(cleanMsg).queue();
-                        } else {
-                            plugin.getLogger().warning("[DiscordPlugin] Discord channel not found: " + channelId);
-                        }
-                    } else {
-                        plugin.getLogger().warning("[DiscordPlugin] No Discord channel ID configured.");
-                    }
+    }
+    private void handleSleepMessage(Player sleeper, String message) {
+        if (GetterHandler.jda() == null) return;
+        String cleanMsg = message.replaceAll("§[0-9a-fA-Fklmnor]", "");
+        cleanMsg = cleanMsg
+            .replaceAll("@everyone", "everyone")
+            .replaceAll("@here", "here")
+            .replaceAll("@", "(at)")
+            .replace("*", "\\*");
+        cleanMsg = config.smFormat().replace("%sleepmessage%", cleanMsg);
+        if (webhookEnabled()) {
+            WebhookMessageBuilder builder = new WebhookMessageBuilder()
+                .setAvatarUrl("http://minotar.net/helm/" + sleeper.getName() + "/100.png")
+                .setUsername(sanitizeDisplayName(sleeper.getDisplayName()))
+                .setContent(cleanMsg);
+            GetterHandler.webhookClient().send(builder.build());
+        } else {
+            String channelId = config.messageChannelId();
+            if (channelId != null && !channelId.isEmpty()) {
+                TextChannel channel = GetterHandler.jda().getTextChannelById(channelId);
+                if (channel != null) {
+                    channel.sendMessage(cleanMsg).queue();
                 }
             }
-        });
-        if (config.debugEnabled()) {
-        	plugin.getLogger().info("[DiscordPlugin] Registered sleep message listener with Utilis SleepingManager.");
         }
     }
 }
